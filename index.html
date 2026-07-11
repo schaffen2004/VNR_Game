@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#b5121b">
+  <title>Đường tới chiến thắng — Chiến dịch Điện Biên Phủ</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <section id="main-menu" class="screen screen--active campaign-home">
+      <header class="campaign-header">
+        <div class="flag-brand">
+          <span class="flag-brand__star">★</span>
+          <div><strong>ĐƯỜNG TỚI CHIẾN THẮNG</strong><small>Game bắn pháo – điều binh chiến thuật 2D</small></div>
+        </div>
+        <div class="wallet" aria-label="Số xu hiện có"><span class="vnd-coin">★</span><strong id="wallet-value">0</strong><span>xu</span></div>
+      </header>
+      <div class="hero-panel">
+        <p class="eyebrow">CHIẾN DỊCH ĐIỆN BIÊN PHỦ · CANVAS 2D CPU/RAM</p>
+        <h1>Đường tới chiến thắng</h1>
+        <p class="subtitle">Chỉ huy pháo binh, bộ binh, công binh và lực lượng yểm trợ để vượt chướng ngại, phá công sự và chiếm các mục tiêu của chiến dịch.</p>
+        <div class="main-menu-grid">
+          <button id="play-menu-button" class="home-action home-action--primary"><span>▶</span><strong>Chơi</strong><small>Chọn cứ điểm và level</small></button>
+          <button id="shop-menu-button" class="home-action"><span>◆</span><strong>Cửa hàng</strong><small>Mua quân và đạn</small></button>
+          <button id="equipment-menu-button" class="home-action"><span>⚙</span><strong>Khí tài</strong><small>Quản lý biên chế</small></button>
+          <button id="history-menu-button" class="home-action"><span>≡</span><strong>Lịch sử chơi</strong><small>Kết quả các trận</small></button>
+          <button id="help-button" class="home-action"><span>?</span><strong>Hướng dẫn</strong><small>Luật chơi và điều khiển</small></button>
+          <button id="settings-menu-button" class="home-action"><span>♫</span><strong>Cài đặt</strong><small>Nhạc nền và hiệu ứng</small></button>
+        </div>
+        <div class="menu-settings-row">
+          <button id="continue-button" class="button button--primary" hidden>Tiếp tục trận đang lưu</button>
+          <span class="cpu-mode-note">Canvas 2D thuần CPU · DPR 1 · tối ưu RAM</span>
+        </div>
+        <p class="historical-note">Bản đồ và khí tài được minh họa theo ảnh tư liệu ở mức giản lược. Xe tăng yểm trợ của người chơi là cơ chế giả lập gameplay, không phải biên chế lịch sử của quân ta tại Điện Biên Phủ năm 1954.</p>
+      </div>
+    </section>
+
+    <section id="mission-screen" class="screen campaign-subscreen">
+      <div class="subscreen-shell">
+        <div class="subscreen-heading"><button class="back-home-button button">← Trang chính</button><div><p class="eyebrow">BẢN ĐỒ CHIẾN DỊCH</p><h2>Chọn cứ điểm</h2></div><div class="wallet"><span class="vnd-coin">★</span><strong class="wallet-mirror">0</strong><span>xu</span></div></div>
+        <p class="screen-description">Chọn một cứ điểm để xem sơ đồ địa hình, nội dung lịch sử giản lược và level câu hỏi trước khi vào trận.</p>
+        <div id="mission-list" class="mission-list"></div>
+      </div>
+    </section>
+
+    <section id="mission-detail-screen" class="screen campaign-subscreen">
+      <div class="subscreen-shell mission-detail-shell">
+        <div class="subscreen-heading"><button id="back-missions-button" class="button">← Chọn cứ điểm</button><div><p class="eyebrow">HỒ SƠ TÁC CHIẾN</p><h2 id="detail-mission-name">Cứ điểm</h2></div><div class="wallet"><span class="vnd-coin">★</span><strong class="wallet-mirror">0</strong><span>xu</span></div></div>
+        <div class="mission-detail-grid">
+          <div class="map-preview-card"><canvas id="mission-preview-canvas" width="920" height="320"></canvas><p id="detail-map-caption"></p></div>
+          <article class="briefing-card">
+            <p id="detail-period" class="briefing-period"></p>
+            <h3>Tóm tắt cứ điểm</h3><p id="detail-description"></p><p id="detail-history"></p>
+            <h3>Chọn level</h3>
+            <div id="level-picker" class="level-picker">
+              <button class="level-option is-selected" data-level="easy"><strong>Dễ</strong><small>20 câu · địch yếu hơn</small></button>
+              <button class="level-option" data-level="medium"><strong>Trung bình</strong><small>25 câu · cân bằng</small></button>
+              <button class="level-option" data-level="hard"><strong>Khó</strong><small>25 câu · địch mạnh hơn</small></button>
+            </div>
+            <div class="briefing-rule"><strong>Luật câu hỏi:</strong> Mỗi lượt tấn công hỏi 1 câu ngẫu nhiên theo level. Sai vẫn được tấn công nhưng lực đánh trong lượt giảm còn 50%.</div>
+            <button id="start-mission-button" class="button button--primary button--large">Bắt đầu triển khai</button>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="shop-screen" class="screen campaign-subscreen">
+      <div class="subscreen-shell">
+        <div class="subscreen-heading"><button class="back-home-button button">← Trang chính</button><div><p class="eyebrow">HẬU CẦN</p><h2>Cửa hàng</h2></div><div class="wallet"><span class="vnd-coin">★</span><strong class="wallet-mirror">0</strong><span>xu</span></div></div>
+        <p class="screen-description">Mua thêm xe tăng yểm trợ, cơ số đạn xe tăng, đạn pháo theo loại và quân số tối đa của mỗi đơn vị bộ binh.</p>
+        <div id="shop-list" class="shop-grid"></div><p id="shop-message" class="status-message" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <section id="equipment-screen" class="screen campaign-subscreen">
+      <div class="subscreen-shell">
+        <div class="subscreen-heading"><button class="back-home-button button">← Trang chính</button><div><p class="eyebrow">BIÊN CHẾ</p><h2>Khí tài hiện có</h2></div><div class="wallet"><span class="vnd-coin">★</span><strong class="wallet-mirror">0</strong><span>xu</span></div></div>
+        <p class="screen-description">Chọn số xe và quân số mỗi đơn vị sẽ mang vào trận. Đạn pháo luôn lấy theo cơ số tối đa đã mua.</p>
+        <div id="equipment-list" class="equipment-grid"></div>
+      </div>
+    </section>
+
+    <section id="history-screen" class="screen campaign-subscreen">
+      <div class="subscreen-shell">
+        <div class="subscreen-heading"><button class="back-home-button button">← Trang chính</button><div><p class="eyebrow">NHẬT KÝ TÁC CHIẾN</p><h2>Lịch sử chơi</h2></div><button id="clear-history-button" class="button">Xóa lịch sử</button></div>
+        <div id="history-list" class="history-list"></div>
+      </div>
+    </section>
+
+    <section id="settings-screen" class="screen campaign-subscreen">
+      <div class="subscreen-shell settings-shell">
+        <div class="subscreen-heading"><button class="back-home-button button">← Trang chính</button><div><p class="eyebrow">ÂM THANH VÀ HIỆU NĂNG</p><h2>Cài đặt</h2></div></div>
+        <div class="settings-grid">
+          <article class="settings-card"><h3>Nhạc nền</h3><label class="toggle-row"><input id="music-enabled-input" type="checkbox" checked><span>Bật nhạc nền chiến trường</span></label><label>Âm lượng <input id="music-volume-input" type="range" min="0" max="1" step="0.05" value="0.22"><output id="music-volume-value">22%</output></label></article>
+          <article class="settings-card"><h3>Hiệu ứng game</h3><label class="toggle-row"><input id="sfx-enabled-input" type="checkbox" checked><span>Bật tiếng pháo, súng, nổ và đào hào</span></label><label>Âm lượng <input id="sfx-volume-input" type="range" min="0" max="1" step="0.05" value="0.55"><output id="sfx-volume-value">55%</output></label><button id="test-sound-button" class="button">Nghe thử tiếng pháo</button></article>
+          <article class="settings-card"><h3>Chế độ hiển thị</h3><p>Canvas 2D thuần, không WebGL, không lớp Canvas GPU thứ hai. Độ phân giải nội bộ giới hạn DPR = 1 và khoảng 45 FPS.</p><button id="reset-progress-button" class="button button--danger">Đặt lại xu, cửa hàng và lịch sử</button></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="game-screen" class="screen">
+      <div id="game-container">
+        <canvas id="game-canvas" aria-label="Bản đồ chiến đấu"></canvas>
+        <div id="top-hud" class="hud-panel top-hud">
+          <div><strong id="mission-title-value">Đường tới chiến thắng</strong></div>
+          <div>Lượt <span id="turn-value">1</span>/<span id="max-turn-value">∞</span></div>
+          <div id="phase-indicator">Quan sát</div><div class="tech-badge">Canvas 2D</div>
+          <div>Gió: <span id="wind-value">0</span></div><div>Lực lượt: <strong id="attack-power-value">100%</strong></div>
+          <div id="objective-value">Quan sát địa hình</div>
+        </div>
+        <div id="artillery-panel" class="hud-panel artillery-panel">
+          <div class="panel-title">Pháo binh</div>
+          <label>Góc <input id="angle-input" type="range" min="15" max="80" step="1" value="45"><span id="angle-value">45°</span></label>
+          <label>Lực <input id="power-input" type="range" min="150" max="600" step="5" value="430"><span id="power-value">430</span></label>
+          <label>Loại đạn <select id="ammo-select" class="select-control select-control--small"></select></label>
+          <div class="artillery-actions"><button id="fire-button" class="button button--danger">KHAI HỎA</button><button id="focus-artillery-button" class="button">Tới pháo</button></div>
+        </div>
+        <div id="command-panel" class="hud-panel command-panel">
+          <div class="panel-title">Mệnh lệnh</div>
+          <div class="command-grid">
+            <button class="command-button is-active" data-command="move">Di chuyển (M)</button><button class="command-button" data-command="dig">Đào hào (T)</button>
+            <button class="command-button" data-command="attack">Bắn / tấn công (F)</button><button class="command-button" data-command="hide">Ẩn nấp</button>
+            <button class="command-button" data-command="charge">Xung phong</button><button class="command-button" data-command="retreat">Rút lui (R)</button>
+          </div>
+        </div>
+        <div id="unit-panel" class="hud-panel unit-panel"><div class="panel-title">Đơn vị</div><div id="unit-list"></div></div>
+        <div id="resource-panel" class="hud-panel resource-panel">
+          <div>Điểm hành động: <strong id="action-points-value">0</strong></div><div>Điểm công binh: <strong id="engineering-points-value">160</strong></div>
+          <div>Điểm chỉ huy: <strong id="command-points-value">60</strong></div><div>Quân số bộ binh: <strong id="troop-count-value">0</strong></div>
+          <div>Xe tăng hoạt động: <strong id="tank-count-value">0</strong></div><div>Đạn xe tăng: <strong id="tank-ammo-value">0/0</strong></div>
+        </div>
+        <div id="minimap" class="hud-panel minimap-panel"><canvas id="minimap-canvas" width="260" height="90"></canvas></div>
+        <div id="battle-log" class="hud-panel battle-log" aria-live="polite"></div>
+        <div class="game-controls"><button id="end-phase-button" class="button button--primary">Kết thúc giai đoạn (E)</button><button id="pause-button" class="button">Tạm dừng</button><button id="save-button" class="button">Lưu</button><button id="sound-button" class="button">🔊</button><button id="game-help-button" class="button">?</button></div>
+      </div>
+    </section>
+
+    <section id="help-screen" class="screen overlay-screen">
+      <div class="modal-card modal-card--wide help-campaign-card">
+        <h2>Hướng dẫn luật chơi</h2>
+        <div class="help-grid">
+          <article><h3>Mục tiêu</h3><p>Dùng pháo, bộ binh và xe tăng yểm trợ để vô hiệu hóa hầm chỉ huy rồi đưa bộ binh đến điểm cắm cờ.</p></article>
+          <article><h3>Câu hỏi mỗi lượt</h3><p>Trước giai đoạn pháo kích, trả lời một câu ngẫu nhiên theo level. Sai làm toàn bộ sát thương của quân ta trong lượt giảm 50%.</p></article>
+          <article><h3>Điều khiển</h3><p>A/D di chuyển camera, con lăn zoom, mũi tên chỉnh pháo, Space bắn, E chuyển giai đoạn, M/T/F đổi lệnh.</p></article>
+          <article><h3>Đào hào</h3><p>Chọn bộ binh, bật Đào hào rồi chọn điểm phía trước. Lính đứng phía sau đầu hào; mỗi đoạn cần nhiều lượt.</p></article>
+          <article><h3>Công sự</h3><p>Hào che chắn, lô cốt/ụ súng bắn thẳng, dây thép gai chặn bộ binh, bãi mìn gây sát thương, pháo/cối bắn xa.</p></article>
+          <article><h3>Thắng và thua</h3><p>Thắng khi chiếm cứ điểm. Chỉ thua khi toàn bộ bộ binh, xe tăng và pháo của ta đều bị loại khỏi vòng chiến.</p></article>
+        </div>
+        <div id="mission-rules-list" class="mission-rules-list"></div>
+        <button id="close-help-button" class="button button--primary">Đã hiểu</button>
+      </div>
+    </section>
+
+    <section id="quiz-screen" class="screen overlay-screen">
+      <div class="modal-card quiz-card">
+        <p class="eyebrow">CÂU HỎI LƯỢT TẤN CÔNG</p>
+        <div class="quiz-meta"><strong id="quiz-level-label">Level Dễ</strong><span id="quiz-turn-label">Lượt 1</span></div>
+        <h2 id="quiz-mission-title">Cứ điểm</h2><p id="quiz-question"></p>
+        <div id="quiz-options" class="quiz-options"></div><p id="quiz-feedback" class="status-message" aria-live="polite"></p><p id="quiz-explanation" class="quiz-explanation"></p>
+        <div class="modal-actions"><button id="quiz-cancel-button" class="button">Quay lại quan sát</button><button id="quiz-continue-button" class="button button--primary" hidden>Tiếp tục tấn công</button></div>
+      </div>
+    </section>
+
+    <section id="pause-screen" class="screen overlay-screen"><div class="modal-card"><h2>Tạm dừng</h2><button id="resume-button" class="button button--primary">Tiếp tục</button><button id="restart-button" class="button">Chơi lại</button><button id="back-menu-button" class="button">Về trang chính</button></div></section>
+    <section id="result-screen" class="screen overlay-screen"><div class="modal-card modal-card--result"><h2 id="result-title">Chiến thắng</h2><p id="result-reason"></p><div id="result-stats"></div><button id="result-restart-button" class="button button--primary">Đánh lại cứ điểm</button><button id="result-menu-button" class="button">Về trang chính</button></div></section>
+    <div id="tutorial-popover" class="tutorial-popover" hidden><strong id="tutorial-title"></strong><p id="tutorial-text"></p><div><button id="tutorial-next-button" class="button button--primary">Tiếp</button><button id="tutorial-skip-button" class="button">Bỏ qua</button></div></div>
+  </div>
+
+  <script src="js/data.js"></script><script src="js/questions.js"></script><script src="js/campaign.js"></script>
+  <script src="js/physics.js"></script><script src="js/effects.js"></script><script src="js/audio.js"></script>
+  <script src="js/artillery.js"></script><script src="js/soldiers.js"></script><script src="js/trenches.js"></script><script src="js/fortress.js"></script><script src="js/enemyAI.js"></script>
+  <script src="js/renderer.js"></script><script src="js/input.js"></script><script src="js/game.js"></script><script src="js/main.js"></script>
+</body>
+</html>
