@@ -210,7 +210,7 @@
     return names.map((name, index) => ({
       id: `squad-0${index + 1}`, type: 'infantry', name, x: baseX + index * 72,
       health: 110 + (index === 2 ? -5 : 0), maxHealth: 110 + (index === 2 ? -5 : 0), soldiers: size,
-      morale: 100, speed: index === 3 ? 37 : 41, diggingSpeed: index === 2 ? 22 : 15,
+      morale: 100, speed: index === 3 ? 60 : 60, diggingSpeed: index === 2 ? 22 : 15,
       digWorkPerTurn: index === 2 ? 44 : 31, attackDamage: index === 3 ? 13 : 10,
       attackRange: index === 3 ? 205 : 178, engineer: index === 2
     }));
