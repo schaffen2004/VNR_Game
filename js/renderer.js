@@ -162,17 +162,23 @@
       this.drawDistantHills(ctx);
       this.drawTerrain(ctx);
       this.drawCraterMarks(ctx);
-      this.drawTrenches(ctx);
+      this.drawTrenches(ctx, false);
       this.drawDecorations(ctx);
       this.drawFlag(ctx);
       this.game.fortresses.forEach((structure) => {
         if (this.game.camera.isVisible(structure.x, structure.y, 150)) this.drawFortress(ctx, structure);
       });
       this.drawArtillery(ctx, this.game.artillery);
+      // Bộ binh được vẽ trước bờ hào phía trước để phần thân dưới bị che đúng như đang ở trong rãnh.
       this.game.squads.forEach((unit) => {
-        if (!this.game.camera.isVisible(unit.x, unit.y, 90)) return;
-        if (unit.type === 'tank') this.drawTank(ctx, unit);
-        else this.drawSquad(ctx, unit);
+        if (unit.type === 'tank' || !this.game.camera.isVisible(unit.x, unit.y, 90)) return;
+        this.drawSquad(ctx, unit);
+      });
+      this.drawTrenches(ctx, true);
+      // Xe tăng không đi trong hào nên luôn được vẽ phía trên bờ đất.
+      this.game.squads.forEach((unit) => {
+        if (unit.type !== 'tank' || !this.game.camera.isVisible(unit.x, unit.y, 100)) return;
+        this.drawTank(ctx, unit);
       });
       this.game.projectiles.forEach((projectile) => this.drawProjectile(ctx, projectile));
       this.drawSmokeZones(ctx);
@@ -311,104 +317,156 @@
           const runwayY = terrain.getHeight(mid) - 3;
           ctx.fillStyle = '#77766f';
           ctx.fillRect(zone.from, runwayY - 9, zone.to - zone.from, 18);
+          ctx.fillStyle = 'rgba(52,51,48,.34)';
+          for (let x = zone.from + 45; x < zone.to; x += 150) ctx.fillRect(x, runwayY - 8, 28, 16);
           ctx.strokeStyle = '#d7d0b6'; ctx.lineWidth = 2; ctx.setLineDash([22, 18]);
           ctx.beginPath(); ctx.moveTo(zone.from + 15, runwayY); ctx.lineTo(zone.to - 15, runwayY); ctx.stroke(); ctx.setLineDash([]);
+        } else if (zone.type === 'bridge') {
+          const leftY = terrain.getHeight(zone.from) - 12;
+          const rightY = terrain.getHeight(zone.to) - 12;
+          const deckY = Math.min(leftY, rightY) - 4;
+          ctx.fillStyle = '#655844'; ctx.fillRect(zone.from, deckY, zone.to - zone.from, 12);
+          ctx.strokeStyle = '#3d403a'; ctx.lineWidth = 4;
+          ctx.beginPath(); ctx.moveTo(zone.from, deckY); ctx.lineTo(zone.to, deckY); ctx.stroke();
+          ctx.lineWidth = 2;
+          for (let x = zone.from; x <= zone.to; x += 26) {
+            ctx.beginPath(); ctx.moveTo(x, deckY); ctx.lineTo(x + 13, deckY - 22); ctx.lineTo(x + 26, deckY); ctx.stroke();
+          }
+          ctx.strokeStyle = '#8d8067'; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.moveTo(zone.from, deckY - 23); ctx.lineTo(zone.to, deckY - 23); ctx.stroke();
+        } else if (zone.type === 'dugout') {
+          const dugoutY = terrain.getHeight(mid);
+          ctx.fillStyle = '#32271e'; ctx.roundRect(mid - 80, dugoutY - 25, 160, 30, 12); ctx.fill();
+          ctx.strokeStyle = '#786044'; ctx.lineWidth = 7;
+          ctx.beginPath(); ctx.arc(mid, dugoutY - 6, 67, Math.PI, 0); ctx.stroke();
+          ctx.fillStyle = '#8b774e';
+          for (let x = mid - 67; x <= mid + 55; x += 20) { ctx.roundRect(x, dugoutY - 34, 18, 8, 3); ctx.fill(); }
         } else if (zone.type === 'approachTrench' || zone.type === 'encircle') {
           ctx.strokeStyle = 'rgba(54,39,27,.8)'; ctx.lineWidth = 8; ctx.setLineDash([38, 18]);
           ctx.beginPath();
           ctx.moveTo(zone.from, terrain.getHeight(zone.from) + 4);
           for (let x = zone.from + 20; x <= zone.to; x += 20) ctx.lineTo(x, terrain.getHeight(x) + 4);
           ctx.stroke(); ctx.setLineDash([]);
-        } else if (zone.type === 'open' || zone.type === 'assembly' || zone.type === 'fortZone' || zone.type === 'gunZone' || zone.type === 'outerFort' || zone.type === 'basin') {
+        } else if (zone.type === 'open' || zone.type === 'assembly' || zone.type === 'fortZone' || zone.type === 'gunZone' || zone.type === 'outerFort' || zone.type === 'basin' || zone.type === 'openSlope' || zone.type === 'obstacleBelt') {
           ctx.fillStyle = zone.type === 'gunZone' ? 'rgba(155,128,70,.13)' : 'rgba(206,190,137,.06)';
           ctx.fillRect(zone.from, y - 10, zone.to - zone.from, 14);
         }
 
-        // Nhãn khu vực được đặt cao hơn mặt đất và tự co để không đè lên công sự.
+        // Nhãn khu vực được đặt cao hơn mặt đất; có thể dịch riêng ở vùng cầu/sông để tránh chồng nhau.
+        const labelX = mid + (Number(zone.labelOffsetX) || 0);
+        const labelY = y - 82 + (Number(zone.labelOffsetY) || 0);
         ctx.fillStyle = 'rgba(27,31,24,.72)';
-        ctx.roundRect(mid - 62, y - 82, 124, 24, 6); ctx.fill();
+        ctx.roundRect(labelX - 62, labelY, 124, 24, 6); ctx.fill();
         ctx.fillStyle = '#f5e6a2'; ctx.font = 'bold 10px system-ui'; ctx.textAlign = 'center';
-        ctx.fillText(zone.label, mid, y - 66);
+        ctx.fillText(zone.label, labelX, labelY + 16);
       });
       ctx.restore();
     }
 
-    drawTrenches(ctx) {
+    drawTrenches(ctx, foregroundOnly) {
       const terrain = this.game.terrain;
-      this.game.trenches.forEach((trench) => {
-        const builtEndX = trench.getBuildFrontX();
-        const direction = trench.direction;
-        const sampleStep = 10 * direction;
-        const drawTerrainPath = (fromX, toX) => {
-          ctx.beginPath();
-          ctx.moveTo(fromX, terrain.getHeight(fromX) + 5);
-          if (direction > 0) {
-            for (let x = fromX + sampleStep; x < toX; x += sampleStep) ctx.lineTo(x, terrain.getHeight(x) + 5);
-          } else {
-            for (let x = fromX + sampleStep; x > toX; x += sampleStep) ctx.lineTo(x, terrain.getHeight(x) + 5);
-          }
-          ctx.lineTo(toX, terrain.getHeight(toX) + 5);
-        };
+      this.game.trenches.forEach((dugout) => {
+        const ratio = dugout.getBuiltRatio();
+        if (ratio <= 0) return;
+        const x = dugout.centerX;
+        const surfaceY = terrain.getHeight(x);
+        const width = dugout.width * (0.34 + ratio * 0.66);
+        const depth = dugout.depth * ratio;
+        const left = x - width * 0.5;
+        const integrity = 0.45 + 0.55 * dugout.durability / 100;
 
         ctx.save();
+        ctx.globalAlpha = integrity;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
-        // Phần chưa đào chỉ là tuyến dự kiến, hiển thị nét đứt mảnh.
-        if (!trench.completed) {
-          ctx.strokeStyle = 'rgba(221, 199, 130, 0.62)';
+        if (foregroundOnly) {
+          // Bờ đất phía trước được vẽ sau bộ binh để tạo cảm giác các tổ quân
+          // đã chui xuống căn hầm nằm thấp hơn mặt đất.
+          ctx.fillStyle = '#62452d';
+          ctx.beginPath();
+          ctx.ellipse(x, surfaceY + 10, width * 0.53, 15, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#a47c47';
           ctx.lineWidth = 3;
-          ctx.setLineDash([9, 8]);
-          drawTerrainPath(builtEndX, trench.endX);
+          ctx.beginPath();
+          ctx.moveTo(left - 8, surfaceY + 2);
+          ctx.quadraticCurveTo(x, surfaceY + 16, left + width + 8, surfaceY + 2);
+          ctx.stroke();
+
+          // Bao đất/bao cát bảo vệ miệng hầm.
+          ctx.fillStyle = '#9b814f';
+          const bagCount = Math.max(3, Math.floor(width / 22));
+          for (let i = 0; i < bagCount; i += 1) {
+            const bx = left + 8 + i * ((width - 16) / Math.max(1, bagCount - 1));
+            ctx.beginPath();
+            ctx.roundRect(bx - 9, surfaceY - 1 + (i % 2) * 2, 18, 8, 4);
+            ctx.fill();
+          }
+          ctx.restore();
+          return;
+        }
+
+        // Vùng đất đang đào và khoang hầm chìm dưới mặt đất.
+        ctx.fillStyle = '#2a1d16';
+        ctx.beginPath();
+        ctx.moveTo(left, surfaceY + 2);
+        ctx.quadraticCurveTo(x, surfaceY + depth + 18, left + width, surfaceY + 2);
+        ctx.quadraticCurveTo(x, surfaceY + depth * 0.45, left, surfaceY + 2);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = '#3b291d';
+        ctx.beginPath();
+        ctx.ellipse(x, surfaceY + Math.max(7, depth * 0.66), width * 0.43, Math.max(7, depth * 0.42), 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Khung gỗ chống sập và cửa hầm.
+        const entranceWidth = Math.min(52, width * 0.42);
+        ctx.strokeStyle = '#6b5234';
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.moveTo(x - entranceWidth * 0.5, surfaceY + depth * 0.65);
+        ctx.lineTo(x - entranceWidth * 0.5, surfaceY - 6);
+        ctx.lineTo(x + entranceWidth * 0.5, surfaceY - 6);
+        ctx.lineTo(x + entranceWidth * 0.5, surfaceY + depth * 0.65);
+        ctx.stroke();
+        ctx.strokeStyle = '#9a7849';
+        ctx.lineWidth = 2;
+        for (let lx = x - entranceWidth * 0.45; lx <= x + entranceWidth * 0.45; lx += 12) {
+          ctx.beginPath();
+          ctx.moveTo(lx, surfaceY - 8);
+          ctx.lineTo(lx, surfaceY + depth * 0.55);
+          ctx.stroke();
+        }
+
+        // Đất mới đào được đắp sang hai bên cửa hầm.
+        ctx.fillStyle = '#87623a';
+        ctx.beginPath(); ctx.ellipse(left - 10, surfaceY + 3, 24 + ratio * 10, 10, -0.12, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(left + width + 10, surfaceY + 3, 24 + ratio * 10, 10, 0.12, 0, Math.PI * 2); ctx.fill();
+
+        if (!dugout.completed) {
+          ctx.strokeStyle = 'rgba(232,211,145,.72)';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([8, 7]);
+          ctx.beginPath();
+          ctx.ellipse(x, surfaceY + 4, dugout.width * 0.52, 18, 0, 0, Math.PI * 2);
           ctx.stroke();
           ctx.setLineDash([]);
-        }
-
-        if (trench.progress > 0) {
-          const durabilityAlpha = 0.45 + 0.55 * trench.durability / 100;
-          ctx.globalAlpha = durabilityAlpha;
-
-          // Rãnh tối nằm thấp hơn mặt đất, thay vì một đường nổi trên bề mặt.
-          ctx.strokeStyle = '#2b2119';
-          ctx.lineWidth = 20;
-          drawTerrainPath(trench.startX, builtEndX);
-          ctx.stroke();
-
-          ctx.strokeStyle = '#4a3827';
-          ctx.lineWidth = 10;
-          drawTerrainPath(trench.startX, builtEndX);
-          ctx.stroke();
-
-          // Bờ đất hai mép hào.
-          ctx.strokeStyle = '#a0824e';
-          ctx.lineWidth = 3;
+          this.drawProgressBar(ctx, x - 38, surfaceY - 44, 76, ratio, '#c8ae62');
+          ctx.fillStyle = '#eadb9d';
+          ctx.font = 'bold 10px system-ui';
+          ctx.textAlign = 'center';
+          ctx.fillText('ĐANG ĐÀO HẦM', x, surfaceY - 51);
+        } else {
+          ctx.fillStyle = 'rgba(16,13,11,.8)';
           ctx.beginPath();
-          ctx.moveTo(trench.startX, terrain.getHeight(trench.startX) - 4);
-          if (direction > 0) {
-            for (let x = trench.startX + sampleStep; x < builtEndX; x += sampleStep) ctx.lineTo(x, terrain.getHeight(x) - 4);
-          } else {
-            for (let x = trench.startX + sampleStep; x > builtEndX; x += sampleStep) ctx.lineTo(x, terrain.getHeight(x) - 4);
-          }
-          ctx.lineTo(builtEndX, terrain.getHeight(builtEndX) - 4);
-          ctx.stroke();
-
-          ctx.strokeStyle = '#6f5638';
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.moveTo(trench.startX, terrain.getHeight(trench.startX) + 11);
-          if (direction > 0) {
-            for (let x = trench.startX + sampleStep; x < builtEndX; x += sampleStep) ctx.lineTo(x, terrain.getHeight(x) + 11);
-          } else {
-            for (let x = trench.startX + sampleStep; x > builtEndX; x += sampleStep) ctx.lineTo(x, terrain.getHeight(x) + 11);
-          }
-          ctx.lineTo(builtEndX, terrain.getHeight(builtEndX) + 11);
-          ctx.stroke();
-        }
-
-        if (!trench.completed) {
-          const barX = builtEndX - 38;
-          const barY = terrain.getHeight(builtEndX) - 36;
-          this.drawProgressBar(ctx, barX, barY, 76, trench.progress / 100, '#c8ae62');
+          ctx.roundRect(x - entranceWidth * 0.34, surfaceY - 2, entranceWidth * 0.68, depth * 0.72, 7);
+          ctx.fill();
+          ctx.fillStyle = '#eadb9d';
+          ctx.font = 'bold 9px system-ui';
+          ctx.textAlign = 'center';
+          ctx.fillText(`HẦM ${dugout.occupantIds.length}/${dugout.capacity}`, x, surfaceY - 18);
         }
         ctx.restore();
       });
@@ -521,7 +579,7 @@
           ctx.fillStyle = '#d0d8bc';
           ctx.font = 'bold 9px system-ui';
           ctx.textAlign = 'center';
-          ctx.fillText('CHE CHẮN', unit.x, unit.y - 50);
+          ctx.fillText(unit.inTrench ? 'TRONG HẦM' : 'CHE CHẮN', unit.x, unit.y - 50);
         }
       }
       ctx.restore();
@@ -561,7 +619,7 @@
       if (!dead) {
         this.drawProgressBar(ctx, -36, -51, 72, tank.health / tank.maxHealth, '#78aa54');
         ctx.fillStyle = '#eee4bd'; ctx.font = 'bold 9px system-ui'; ctx.textAlign = 'center';
-        ctx.fillText(`ĐẠN ${tank.shotsRemaining}`, 0, -58);
+        ctx.fillText('XE TĂNG', 0, -58);
       }
       ctx.restore();
     }
@@ -582,69 +640,25 @@
       const rect = structure.getRect();
       ctx.save();
       ctx.globalAlpha = structure.active ? 1 : 0.45;
-      ctx.fillStyle = 'rgba(12,13,11,.28)';
-      ctx.beginPath(); ctx.ellipse(structure.x, rect.y + rect.height + 6, structure.width * 0.58, 9, 0, 0, Math.PI * 2); ctx.fill();
+      if (structure.type !== 'aircraft') {
+        ctx.fillStyle = 'rgba(12,13,11,.28)';
+        ctx.beginPath(); ctx.ellipse(structure.x, rect.y + rect.height + 6, structure.width * 0.58, 9, 0, 0, Math.PI * 2); ctx.fill();
+      }
 
-      if (structure.type === 'bunker' || structure.type === 'command') {
-        const concrete = ctx.createLinearGradient(rect.x, rect.y, rect.x, rect.y + rect.height);
-        concrete.addColorStop(0, structure.flashTime > 0 ? '#b9a07e' : '#77796f');
-        concrete.addColorStop(1, '#434742');
-        ctx.fillStyle = concrete;
-        ctx.roundRect(rect.x, rect.y + 10, rect.width, rect.height - 10, 5); ctx.fill();
-        ctx.fillStyle = '#85877c';
-        ctx.beginPath(); ctx.moveTo(rect.x - 9, rect.y + 13); ctx.lineTo(rect.x + 10, rect.y); ctx.lineTo(rect.x + rect.width - 10, rect.y); ctx.lineTo(rect.x + rect.width + 9, rect.y + 13); ctx.closePath(); ctx.fill();
-        ctx.fillStyle = '#161a17';
-        const slitX = rect.x + rect.width * 0.31;
-        const slitY = rect.y + rect.height * 0.45;
-        ctx.roundRect(slitX, slitY, rect.width * 0.38, 11, 2); ctx.fill();
-        if (structure.type === 'bunker' && structure.flashTime > 0) {
-          ctx.fillStyle = '#ffc85b';
-          ctx.beginPath();
-          ctx.moveTo(slitX - 2, slitY + 5);
-          ctx.lineTo(slitX - 15, slitY - 2);
-          ctx.lineTo(slitX - 12, slitY + 12);
-          ctx.closePath();
-          ctx.fill();
-        }
-        ctx.strokeStyle = 'rgba(32,31,28,.45)'; ctx.lineWidth = 1;
-        for (let x = rect.x + 12; x < rect.x + rect.width - 8; x += 20) { ctx.beginPath(); ctx.moveTo(x, rect.y + 13); ctx.lineTo(x + 5, rect.y + rect.height - 5); ctx.stroke(); }
+      if (structure.type === 'bunker') {
+        this.drawConcreteBunker(ctx, structure, rect);
+      } else if (structure.type === 'command') {
+        this.drawCommandBunker(ctx, structure, rect);
       } else if (structure.type === 'machineGun') {
-        ctx.fillStyle = '#55594f'; ctx.roundRect(rect.x, rect.y + 12, rect.width, rect.height - 12, 4); ctx.fill();
-        ctx.fillStyle = '#242b25'; ctx.beginPath(); ctx.arc(structure.x + 8, structure.y + 10, 10, 0, Math.PI * 2); ctx.fill();
-        ctx.fillRect(structure.x - 34, structure.y + 6, 45, 6);
-        if (structure.flashTime > 0) { ctx.fillStyle = '#ffc45d'; ctx.beginPath(); ctx.arc(structure.x - 38, structure.y + 9, 7, 0, Math.PI * 2); ctx.fill(); }
+        this.drawMachineGunNest(ctx, structure, rect);
       } else if (structure.type === 'mortar') {
-        ctx.fillStyle = '#394336'; ctx.roundRect(rect.x, rect.y + 18, rect.width, rect.height - 18, 4); ctx.fill();
-        ctx.strokeStyle = '#20271f'; ctx.lineWidth = 9; ctx.lineCap = 'round';
-        ctx.beginPath(); ctx.moveTo(structure.x + 5, structure.y + 23); ctx.lineTo(structure.x - 10, structure.y - 8); ctx.stroke();
-        ctx.strokeStyle = '#6d765c'; ctx.lineWidth = 2; ctx.stroke();
+        this.drawMortarPosition(ctx, structure, rect);
       } else if (structure.type === 'artillery') {
-        ctx.fillStyle = '#3b4536'; ctx.roundRect(rect.x, rect.y + 16, rect.width, rect.height - 16, 5); ctx.fill();
-        ctx.fillStyle = '#222921';
-        ctx.beginPath(); ctx.arc(structure.x - 19, rect.y + rect.height, 10, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(structure.x + 18, rect.y + rect.height, 10, 0, Math.PI * 2); ctx.fill();
-        const angle = structure.aimVX ? Math.atan2(structure.aimVY, structure.aimVX) : Math.PI + 0.18;
-        ctx.save(); ctx.translate(structure.x, structure.y + 10); ctx.rotate(angle);
-        const barrel = ctx.createLinearGradient(0, 0, 72, 0); barrel.addColorStop(0, '#4f5a45'); barrel.addColorStop(1, '#1f251f');
-        ctx.fillStyle = barrel; ctx.roundRect(0, -5, 70, 10, 3); ctx.fill(); ctx.fillStyle = '#151a16'; ctx.fillRect(65, -7, 8, 14); ctx.restore();
+        this.drawEnemyHowitzer(ctx, structure, rect);
       } else if (structure.type === 'enemyTank') {
-        ctx.fillStyle = '#43483d';
-        ctx.roundRect(rect.x, rect.y + 16, rect.width, rect.height - 16, 7); ctx.fill();
-        ctx.fillStyle = '#1d211d';
-        ctx.roundRect(rect.x - 3, rect.y + rect.height - 11, rect.width + 6, 15, 7); ctx.fill();
-        for (let wx = rect.x + 12; wx < rect.x + rect.width - 5; wx += 18) {
-          ctx.fillStyle = '#697061'; ctx.beginPath(); ctx.arc(wx, rect.y + rect.height - 4, 6, 0, Math.PI * 2); ctx.fill();
-        }
-        ctx.fillStyle = '#5a6254'; ctx.beginPath(); ctx.ellipse(structure.x, rect.y + 13, 23, 11, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#252b25'; ctx.fillRect(rect.x - 38, rect.y + 8, 47, 7);
-        if (structure.flashTime > 0) { ctx.fillStyle = '#ffc45d'; ctx.beginPath(); ctx.arc(rect.x - 42, rect.y + 11, 8, 0, Math.PI * 2); ctx.fill(); }
+        this.drawEnemyM24(ctx, structure, rect);
       } else if (structure.type === 'aircraft') {
-        ctx.save(); ctx.translate(structure.x, structure.y + 12);
-        ctx.fillStyle = structure.flashTime > 0 ? '#c3a06b' : '#9a9d94';
-        ctx.beginPath(); ctx.moveTo(-48, 0); ctx.lineTo(36, -7); ctx.lineTo(49, 0); ctx.lineTo(35, 6); ctx.closePath(); ctx.fill();
-        ctx.fillStyle = '#777b73';
-        ctx.beginPath(); ctx.moveTo(-4, 0); ctx.lineTo(-24, -25); ctx.lineTo(12, -4); ctx.lineTo(30, -2); ctx.lineTo(12, 4); ctx.lineTo(-24, 25); ctx.closePath(); ctx.fill();
-        ctx.fillStyle = '#555a54'; ctx.fillRect(-37, -12, 8, 24); ctx.restore();
+        this.drawC47Aircraft(ctx, structure, rect);
       }
 
       if (structure.status === 'damaged' || structure.status === 'disabled') {
@@ -656,6 +670,128 @@
       this.drawProgressBar(ctx, structure.x - 38, structure.y - 27, 76, structure.health / structure.maxHealth, '#ad604b');
       ctx.fillStyle = '#f1e8cb'; ctx.font = 'bold 10px system-ui'; ctx.textAlign = 'center';
       ctx.fillText(structure.name, structure.x, structure.y - 35);
+      ctx.restore();
+    }
+
+    drawSandbag(ctx, x, y, width, height) {
+      ctx.fillStyle = '#8b774f';
+      ctx.roundRect(x, y, width, height, height * 0.45); ctx.fill();
+      ctx.strokeStyle = 'rgba(47,40,28,.45)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x + width * 0.5, y + 1); ctx.lineTo(x + width * 0.5, y + height - 1); ctx.stroke();
+    }
+
+    drawConcreteBunker(ctx, structure, rect) {
+      ctx.fillStyle = '#66533a';
+      ctx.beginPath();
+      ctx.moveTo(rect.x - 14, rect.y + rect.height); ctx.lineTo(rect.x - 6, rect.y + 13);
+      ctx.lineTo(rect.x + 12, rect.y - 4); ctx.lineTo(rect.x + rect.width - 10, rect.y - 4);
+      ctx.lineTo(rect.x + rect.width + 15, rect.y + rect.height); ctx.closePath(); ctx.fill();
+      const concrete = ctx.createLinearGradient(rect.x, rect.y, rect.x, rect.y + rect.height);
+      concrete.addColorStop(0, structure.flashTime > 0 ? '#c0a47d' : '#898a7d');
+      concrete.addColorStop(1, '#454942');
+      ctx.fillStyle = concrete; ctx.roundRect(rect.x, rect.y + 9, rect.width, rect.height - 9, 4); ctx.fill();
+      ctx.fillStyle = '#20231f';
+      const slitY = rect.y + rect.height * 0.47;
+      ctx.roundRect(rect.x + 13, slitY, rect.width * 0.52, 10, 2); ctx.fill();
+      ctx.fillStyle = '#5f625a'; ctx.fillRect(rect.x + rect.width - 20, rect.y + 19, 13, rect.height - 24);
+      for (let x = rect.x - 8; x < rect.x + rect.width + 2; x += 20) this.drawSandbag(ctx, x, rect.y + 1, 19, 8);
+      if (structure.flashTime > 0) {
+        ctx.fillStyle = '#ffd064'; ctx.beginPath();
+        ctx.moveTo(rect.x + 10, slitY + 5); ctx.lineTo(rect.x - 15, slitY - 2); ctx.lineTo(rect.x - 10, slitY + 13); ctx.closePath(); ctx.fill();
+      }
+    }
+
+    drawCommandBunker(ctx, structure, rect) {
+      // Hầm chỉ huy dạng mái thép uốn cong, phủ gỗ và bao cát.
+      ctx.fillStyle = '#4a3b2b'; ctx.fillRect(rect.x - 9, rect.y + 25, rect.width + 18, rect.height - 25);
+      ctx.fillStyle = structure.flashTime > 0 ? '#ae946d' : '#74766e';
+      ctx.beginPath();
+      ctx.moveTo(rect.x, rect.y + rect.height);
+      ctx.lineTo(rect.x, rect.y + 30);
+      ctx.quadraticCurveTo(structure.x, rect.y - 10, rect.x + rect.width, rect.y + 30);
+      ctx.lineTo(rect.x + rect.width, rect.y + rect.height); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#3b3e39'; ctx.lineWidth = 2;
+      for (let x = rect.x + 8; x < rect.x + rect.width; x += 12) {
+        ctx.beginPath(); ctx.moveTo(x, rect.y + 26); ctx.lineTo(x, rect.y + rect.height - 4); ctx.stroke();
+      }
+      ctx.fillStyle = '#211c17'; ctx.roundRect(rect.x + rect.width * 0.36, rect.y + rect.height * 0.45, rect.width * 0.28, rect.height * 0.55, 2); ctx.fill();
+      for (let row = 0; row < 2; row += 1) {
+        for (let x = rect.x - 11 + row * 8; x < rect.x + rect.width + 5; x += 23) {
+          this.drawSandbag(ctx, x, rect.y + 7 + row * 8, 22, 8);
+        }
+      }
+    }
+
+    drawMachineGunNest(ctx, structure, rect) {
+      ctx.fillStyle = '#392d22';
+      ctx.beginPath(); ctx.ellipse(structure.x, rect.y + rect.height - 2, rect.width * 0.55, 18, 0, Math.PI, Math.PI * 2); ctx.fill();
+      for (let i = 0; i < 5; i += 1) {
+        const angle = Math.PI + i * Math.PI / 4;
+        const x = structure.x + Math.cos(angle) * 28 - 10;
+        const y = rect.y + rect.height - 7 + Math.sin(angle) * 13;
+        this.drawSandbag(ctx, x, y, 21, 8);
+      }
+      ctx.fillStyle = '#252b25'; ctx.beginPath(); ctx.arc(structure.x + 7, rect.y + 16, 9, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#222720'; ctx.lineWidth = 6; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(structure.x + 6, rect.y + 16); ctx.lineTo(structure.x - 39, rect.y + 10); ctx.stroke();
+      ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(structure.x + 2, rect.y + 20); ctx.lineTo(structure.x - 8, rect.y + 36); ctx.moveTo(structure.x + 10, rect.y + 20); ctx.lineTo(structure.x + 18, rect.y + 36); ctx.stroke();
+      if (structure.flashTime > 0) { ctx.fillStyle = '#ffc45d'; ctx.beginPath(); ctx.arc(structure.x - 43, rect.y + 9, 7, 0, Math.PI * 2); ctx.fill(); }
+    }
+
+    drawMortarPosition(ctx, structure, rect) {
+      for (let x = rect.x - 3; x < rect.x + rect.width; x += 22) this.drawSandbag(ctx, x, rect.y + rect.height - 10, 21, 8);
+      ctx.strokeStyle = '#20271f'; ctx.lineWidth = 9; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(structure.x + 7, rect.y + rect.height - 8); ctx.lineTo(structure.x - 11, rect.y - 7); ctx.stroke();
+      ctx.strokeStyle = '#777e67'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = '#30382f'; ctx.beginPath(); ctx.ellipse(structure.x + 7, rect.y + rect.height - 5, 20, 6, 0, 0, Math.PI * 2); ctx.fill();
+    }
+
+    drawEnemyHowitzer(ctx, structure, rect) {
+      const angle = structure.aimVX ? Math.atan2(structure.aimVY, structure.aimVX) : Math.PI + 0.16;
+      ctx.strokeStyle = '#30372e'; ctx.lineWidth = 7; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(structure.x - 3, rect.y + rect.height - 12); ctx.lineTo(structure.x + 45, rect.y + rect.height + 5); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(structure.x - 3, rect.y + rect.height - 12); ctx.lineTo(structure.x + 34, rect.y + rect.height + 19); ctx.stroke();
+      ctx.fillStyle = '#252a24';
+      ctx.beginPath(); ctx.arc(structure.x - 21, rect.y + rect.height - 4, 14, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(structure.x + 17, rect.y + rect.height - 4, 14, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#6c725f'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(structure.x - 21, rect.y + rect.height - 4, 9, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(structure.x + 17, rect.y + rect.height - 4, 9, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = '#59604f';
+      ctx.beginPath(); ctx.moveTo(structure.x - 14, rect.y + 7); ctx.lineTo(structure.x + 24, rect.y + 7); ctx.lineTo(structure.x + 31, rect.y + 31); ctx.lineTo(structure.x - 22, rect.y + 31); ctx.closePath(); ctx.fill();
+      ctx.save(); ctx.translate(structure.x - 2, rect.y + 18); ctx.rotate(angle);
+      ctx.fillStyle = '#343b31'; ctx.roundRect(0, -5, 82, 10, 3); ctx.fill();
+      ctx.fillStyle = '#171b17'; ctx.fillRect(76, -7, 9, 14); ctx.restore();
+    }
+
+    drawEnemyM24(ctx, structure, rect) {
+      ctx.fillStyle = '#20251f'; ctx.roundRect(rect.x - 4, rect.y + rect.height - 17, rect.width + 8, 18, 8); ctx.fill();
+      for (let i = 0; i < 5; i += 1) {
+        const wx = rect.x + 13 + i * ((rect.width - 26) / 4);
+        ctx.fillStyle = '#626959'; ctx.beginPath(); ctx.arc(wx, rect.y + rect.height - 8, 7, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#252a24'; ctx.beginPath(); ctx.arc(wx, rect.y + rect.height - 8, 3, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.fillStyle = structure.flashTime > 0 ? '#88714f' : '#4c5744';
+      ctx.beginPath(); ctx.moveTo(rect.x + 4, rect.y + 16); ctx.lineTo(rect.x + rect.width - 12, rect.y + 10); ctx.lineTo(rect.x + rect.width, rect.y + rect.height - 18); ctx.lineTo(rect.x, rect.y + rect.height - 18); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#5b6552'; ctx.beginPath(); ctx.ellipse(structure.x + 4, rect.y + 13, 25, 12, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#252c25'; ctx.fillRect(rect.x - 42, rect.y + 9, 58, 7);
+      ctx.fillRect(rect.x - 47, rect.y + 7, 8, 11);
+      ctx.fillStyle = '#6f775f'; ctx.beginPath(); ctx.arc(structure.x + 10, rect.y + 3, 5, 0, Math.PI * 2); ctx.fill();
+      if (structure.flashTime > 0) { ctx.fillStyle = '#ffc45d'; ctx.beginPath(); ctx.arc(rect.x - 51, rect.y + 12, 9, 0, Math.PI * 2); ctx.fill(); }
+    }
+
+    drawC47Aircraft(ctx, structure) {
+      ctx.save(); ctx.translate(structure.x, structure.y + structure.height * 0.5);
+      ctx.fillStyle = structure.flashTime > 0 ? '#c5a36c' : '#8b9088';
+      ctx.beginPath(); ctx.moveTo(-72, 0); ctx.quadraticCurveTo(-20, -12, 58, -5); ctx.lineTo(73, 0); ctx.lineTo(58, 6); ctx.quadraticCurveTo(-20, 12, -72, 0); ctx.fill();
+      ctx.fillStyle = '#747a72';
+      ctx.beginPath(); ctx.moveTo(-5, 0); ctx.lineTo(-42, -42); ctx.lineTo(20, -8); ctx.lineTo(49, -4); ctx.lineTo(20, 8); ctx.lineTo(-42, 42); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#5d635d';
+      ctx.beginPath(); ctx.moveTo(-55, 0); ctx.lineTo(-69, -23); ctx.lineTo(-39, -5); ctx.lineTo(-28, 0); ctx.lineTo(-39, 5); ctx.lineTo(-69, 23); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#343a35';
+      [-22, 21].forEach((x) => { ctx.beginPath(); ctx.ellipse(x, 0, 10, 7, 0, 0, Math.PI * 2); ctx.fill(); });
+      ctx.strokeStyle = 'rgba(230,230,213,.5)'; ctx.lineWidth = 2;
+      [-22, 21].forEach((x) => { ctx.beginPath(); ctx.moveTo(x, -17); ctx.lineTo(x, 17); ctx.stroke(); });
       ctx.restore();
     }
 
@@ -705,19 +841,31 @@
       const y = this.game.terrain.getHeight(wire.x);
       ctx.save();
       ctx.globalAlpha = wire.active ? 1 : 0.22;
-      ctx.strokeStyle = wire.flashTime > 0 ? '#e5c66d' : '#6a665d';
-      ctx.lineWidth = 3;
       const left = wire.x - wire.width / 2;
       const right = wire.x + wire.width / 2;
-      for (let row = 0; row < 3; row += 1) {
-        ctx.beginPath();
-        for (let x = left; x <= right; x += 10) {
-          const yy = y - 8 - row * 8 + ((x / 10) % 2 === 0 ? -5 : 5);
-          if (x === left) ctx.moveTo(x, yy); else ctx.lineTo(x, yy);
-        }
-        ctx.stroke();
+      ctx.strokeStyle = '#4c4942'; ctx.lineWidth = 4;
+      for (let x = left + 8; x <= right - 8; x += 28) {
+        ctx.beginPath(); ctx.moveTo(x, y + 2); ctx.lineTo(x, y - 34); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x - 6, y - 25); ctx.lineTo(x + 6, y - 25); ctx.stroke();
       }
-      this.drawProgressBar(ctx, wire.x - 30, y - 52, 60, wire.health / wire.maxHealth, '#9b5b49');
+      // Cuộn dây concertina: các vòng elip nối tiếp thay cho đường ziczac phẳng.
+      ctx.strokeStyle = wire.flashTime > 0 ? '#e5c66d' : '#77746c';
+      ctx.lineWidth = 2.2;
+      for (let row = 0; row < 2; row += 1) {
+        const cy = y - 10 - row * 15;
+        for (let x = left + 12; x < right - 5; x += 18) {
+          ctx.beginPath(); ctx.ellipse(x, cy, 13, 9, 0, 0, Math.PI * 2); ctx.stroke();
+          ctx.fillStyle = '#77746c';
+          for (let a = 0; a < 4; a += 1) {
+            const angle = a * Math.PI / 2 + 0.35;
+            const bx = x + Math.cos(angle) * 13;
+            const by = cy + Math.sin(angle) * 9;
+            ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + Math.cos(angle) * 5, by + Math.sin(angle) * 5); ctx.stroke();
+          }
+        }
+      }
+      this.drawProgressBar(ctx, wire.x - 34, y - 62, 68, wire.health / wire.maxHealth, '#9b5b49');
+      ctx.fillStyle = '#efe5c7'; ctx.font = 'bold 10px system-ui'; ctx.textAlign = 'center'; ctx.fillText(wire.name, wire.x, y - 70);
       ctx.restore();
     }
 
@@ -725,14 +873,21 @@
       const y = this.game.terrain.getHeight(minefield.x);
       const left = minefield.x - minefield.width / 2;
       ctx.save(); ctx.globalAlpha = minefield.active ? 1 : 0.22;
-      ctx.fillStyle = 'rgba(92,66,42,.28)'; ctx.fillRect(left, y - 12, minefield.width, 18);
-      ctx.strokeStyle = '#b5914b'; ctx.lineWidth = 2;
-      for (let x = left + 15; x < left + minefield.width - 10; x += 34) {
-        ctx.beginPath(); ctx.moveTo(x, y - 4); ctx.lineTo(x + 8, y - 20); ctx.lineTo(x + 16, y - 4); ctx.stroke();
-        ctx.fillStyle = '#c9a849'; ctx.font = 'bold 11px system-ui'; ctx.textAlign = 'center'; ctx.fillText('!', x + 8, y - 7);
+      ctx.fillStyle = 'rgba(74,53,35,.2)'; ctx.fillRect(left, y - 11, minefield.width, 18);
+      // Mìn được vẽ chìm một phần dưới đất, phân bố không đều nhưng cố định theo vị trí.
+      for (let x = left + 14; x < left + minefield.width - 8; x += 30) {
+        const offset = Math.sin(x * 0.17) * 5;
+        ctx.fillStyle = '#34372f'; ctx.beginPath(); ctx.ellipse(x, y - 3 + offset * 0.15, 9, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#77765f'; ctx.fillRect(x - 1.5, y - 9 + offset * 0.15, 3, 6);
       }
-      this.drawProgressBar(ctx, minefield.x - 38, y - 47, 76, minefield.health / minefield.maxHealth, '#a86a45');
-      ctx.fillStyle = '#f1e8cb'; ctx.font = 'bold 10px system-ui'; ctx.textAlign = 'center'; ctx.fillText(minefield.name, minefield.x, y - 54);
+      // Cọc cảnh báo ở hai đầu bãi mìn.
+      [left + 6, left + minefield.width - 6].forEach((x) => {
+        ctx.strokeStyle = '#584633'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - 34); ctx.stroke();
+        ctx.fillStyle = '#ad8b44'; ctx.beginPath(); ctx.moveTo(x, y - 34); ctx.lineTo(x + 13, y - 25); ctx.lineTo(x, y - 17); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#3a2a1f'; ctx.font = 'bold 10px system-ui'; ctx.textAlign = 'left'; ctx.fillText('MÌN', x + 2, y - 24);
+      });
+      this.drawProgressBar(ctx, minefield.x - 40, y - 51, 80, minefield.health / minefield.maxHealth, '#a86a45');
+      ctx.fillStyle = '#f1e8cb'; ctx.font = 'bold 10px system-ui'; ctx.textAlign = 'center'; ctx.fillText(minefield.name, minefield.x, y - 59);
       ctx.restore();
     }
 

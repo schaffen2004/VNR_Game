@@ -36,6 +36,8 @@
       this.lastDamageTurn = 0;
       this.mineTriggerCooldown = 0;
       this.muzzleFlashTime = 0;
+      this.inTrench = false;
+      this.trenchId = null;
     }
 
     startTurn() {
@@ -48,7 +50,7 @@
 
     update(dt, game) {
       if (this.state === 'dead') return;
-      this.y = game.terrain.getHeight(this.x) - 10;
+      this.syncToGround(game);
       this.attackCooldown = Math.max(0, this.attackCooldown - dt);
       this.flashTime = Math.max(0, this.flashTime - dt);
       this.muzzleFlashTime = Math.max(0, this.muzzleFlashTime - dt);
@@ -67,19 +69,61 @@
         this.morale = NS.clamp(this.morale + 2.2 * dt, 0, 100);
       }
 
+      this.syncToGround(game);
+      this.cover = this.calculateCover(game);
+
       if (this.morale <= 0 && this.state !== 'retreating') {
         this.retreat(game);
         game.log(`${this.name} mất tinh thần và rút lui.`, 'danger');
       }
     }
 
+    syncToGround(game) {
+      const dugout = this.trenchId
+        ? game.trenches.find((item) => item.id === this.trenchId && item.completed && item.durability > 15)
+        : null;
+      if (dugout && this.inTrench) {
+        this.x = dugout.getSlotX(this.id);
+        this.y = dugout.getFloorY(game.terrain) - 8;
+        return;
+      }
+      if (this.inTrench || this.trenchId) {
+        this.inTrench = false;
+        this.trenchId = null;
+        if (this.state === 'sheltered') this.state = 'idle';
+      }
+      this.y = game.terrain.getHeight(this.x) - 10;
+    }
+
     calculateCover(game) {
       let cover = 0;
-      const trench = game.trenches.find((item) => item.containsUnit(this));
-      if (trench) cover = trench.getCoverFor(this);
+      const dugout = this.trenchId ? game.trenches.find((item) => item.id === this.trenchId) : null;
+      if (dugout && this.inTrench) cover = dugout.getCoverFor(this);
       if (game.effects.isPointInSmoke(this.x, this.y)) cover = Math.max(cover, 0.42);
       if (this.state === 'hiding') cover = Math.max(cover, 0.38);
-      return NS.clamp(cover, 0, 0.72);
+      return NS.clamp(cover, 0, 0.84);
+    }
+
+    leaveShelter(game) {
+      if (!this.trenchId) return;
+      const dugout = game && game.trenches.find((item) => item.id === this.trenchId);
+      if (dugout) dugout.removeOccupant(this.id);
+      this.inTrench = false;
+      this.trenchId = null;
+      if (game) this.y = game.terrain.getHeight(this.x) - 10;
+    }
+
+    enterShelter(game, dugout) {
+      if (!dugout || !dugout.completed || !dugout.addOccupant(this.id)) return false;
+      this.inTrench = true;
+      this.trenchId = dugout.id;
+      this.x = dugout.getSlotX(this.id);
+      this.y = dugout.getFloorY(game.terrain) - 8;
+      this.state = 'sheltered';
+      this.targetX = null;
+      this.targetY = null;
+      this.attackTarget = null;
+      return true;
     }
 
     updateMovement(dt, game) {
@@ -100,7 +144,7 @@
       const wire = game.getBlockingWire(this.x, this.targetX);
       if (wire && Math.abs(wire.x - this.x) < 30) {
         if (this.state === 'charging') {
-          this.attack(wire);
+          this.attack(wire, game);
         } else {
           this.state = 'idle';
           this.targetX = null;
@@ -111,11 +155,12 @@
 
       let speedMultiplier = this.state === 'charging' ? 1.35 : 1;
       if (this.state === 'retreating') speedMultiplier = 1.2;
-      if (this.cover > 0.45) speedMultiplier *= 0.72;
+      if (this.inTrench) speedMultiplier *= NS.Constants.TRENCH_MOVE_MULTIPLIER;
+      else if (this.cover > 0.45) speedMultiplier *= 0.72;
       speedMultiplier *= game.getMovementMultiplier ? game.getMovementMultiplier(this.x, this.type) : 1;
       const nextX = this.x + direction * this.speed * speedMultiplier * dt;
       this.x = NS.clamp(nextX, 20, NS.Constants.WORLD_WIDTH - 20);
-      this.y = game.terrain.getHeight(this.x) - 10;
+      this.syncToGround(game);
       if (game.applyMinefieldHazard) game.applyMinefieldHazard(this);
     }
 
@@ -128,10 +173,12 @@
         return;
       }
 
-      // Trong lúc đào, đơn vị đứng sau mép hào. Phần hào mới luôn xuất hiện ở phía trước,
-      // không được vẽ trực tiếp dưới chân người lính.
+      // Các tổ được chọn đứng quanh cửa hầm trong lúc đào; vị trí hầm nằm phía trước đội hình.
       if (!Number.isFinite(this.digStandX)) {
-        this.digStandX = trench.startX - trench.direction * NS.Constants.TRENCH_WORK_DISTANCE;
+        const index = Math.max(0, trench.assignedUnitIds.indexOf(this.id));
+        const side = index % 2 === 0 ? -1 : 1;
+        const rank = Math.floor(index / 2);
+        this.digStandX = trench.centerX + side * (trench.width * 0.5 + 18 + rank * 13);
       }
       this.x = NS.clamp(this.digStandX, 20, NS.Constants.WORLD_WIDTH - 20);
       this.y = game.terrain.getHeight(this.x) - 10;
@@ -164,15 +211,20 @@
     }
 
     finishTrench(game) {
-      const trench = this.activeTrench;
-      if (!trench) return;
-      this.x = NS.clamp(trench.endX - trench.direction * NS.Constants.TRENCH_WORK_DISTANCE, 20, NS.Constants.WORLD_WIDTH - 20);
-      this.y = game.terrain.getHeight(this.x) - 10;
-      this.state = 'idle';
+      const dugout = this.activeTrench;
+      if (!dugout) return;
       this.activeTrench = null;
       this.digStandX = null;
-      game.log(`${this.name} hoàn thành một đoạn hào nối tiếp.`, 'important');
-      game.stats.trenchesCompleted += 1;
+      if (!dugout.completionRegistered) {
+        dugout.completionRegistered = true;
+        game.stats.trenchesCompleted += 1;
+        game.log('Hầm trú ẩn đã hoàn thành; các tổ được chọn đang chui xuống hầm.', 'important');
+      }
+      if (!this.enterShelter(game, dugout)) {
+        this.state = 'idle';
+        this.x = NS.clamp(dugout.centerX - dugout.width * 0.5 - 20, 20, NS.Constants.WORLD_WIDTH - 20);
+        this.y = game.terrain.getHeight(this.x) - 10;
+      }
     }
 
     updateAttack(dt, game) {
@@ -193,23 +245,15 @@
           return;
         }
         this.x += Math.sign(dx) * this.speed * 0.5 * dt;
-        this.y = game.terrain.getHeight(this.x) - 10;
+        this.syncToGround(game);
         return;
       }
 
-      if (this.volleyShotsRemaining <= 0) {
-        this.stopAttack();
-        return;
-      }
-
+      // Tự động chiến đấu hết cỡ: sau một lệnh tấn công, bộ binh tiếp tục
+      // bắn từng loạt cho đến khi mục tiêu bị phá hủy hoặc người chơi ra lệnh khác.
       if (this.attackCooldown <= 0) {
         this.fireRifleVolley(target, game);
-        this.volleyShotsRemaining -= 1;
         this.attackCooldown = 0.48;
-        if (this.volleyShotsRemaining <= 0) {
-          this.attackTarget = null;
-          this.state = 'idle';
-        }
       }
     }
 
@@ -247,8 +291,9 @@
       if (this.state !== 'dead') this.state = 'idle';
     }
 
-    moveTo(x, y, charge) {
+    moveTo(x, y, charge, game) {
       if (this.state === 'dead') return;
+      this.leaveShelter(game);
       this.targetX = NS.clamp(Number(x), 20, NS.Constants.WORLD_WIDTH - 20);
       this.targetY = Number(y) || this.y;
       this.state = charge ? 'charging' : 'moving';
@@ -258,21 +303,26 @@
       this.digStandX = null;
     }
 
-    digTrench(trench) {
-      if (this.state === 'dead' || !trench) return;
-      this.activeTrench = trench;
-      this.digStandX = NS.clamp(trench.startX - trench.direction * NS.Constants.TRENCH_WORK_DISTANCE, 20, NS.Constants.WORLD_WIDTH - 20);
+    digTrench(dugout, slotIndex, game) {
+      if (this.state === 'dead' || !dugout) return;
+      this.leaveShelter(game);
+      this.activeTrench = dugout;
+      const index = Number.isFinite(Number(slotIndex)) ? Number(slotIndex) : Math.max(0, dugout.assignedUnitIds.indexOf(this.id));
+      const side = index % 2 === 0 ? -1 : 1;
+      const rank = Math.floor(index / 2);
+      this.digStandX = NS.clamp(dugout.centerX + side * (dugout.width * 0.5 + 18 + rank * 13), 20, NS.Constants.WORLD_WIDTH - 20);
       this.x = this.digStandX;
-      this.targetX = trench.endX;
+      this.targetX = dugout.centerX;
       this.state = 'digging';
       this.attackTarget = null;
       this.volleyShotsRemaining = 0;
     }
 
-    attack(target) {
+    attack(target, game) {
       if (this.state === 'dead' || !target) return;
+      this.leaveShelter(game);
       this.attackTarget = target;
-      this.volleyShotsRemaining = 3;
+      this.volleyShotsRemaining = Number.POSITIVE_INFINITY;
       this.attackCooldown = 0;
       this.state = 'attacking';
       this.activeTrench = null;
@@ -281,7 +331,7 @@
 
     hide() {
       if (this.state !== 'dead') {
-        this.state = 'hiding';
+        this.state = this.inTrench ? 'sheltered' : 'hiding';
         this.targetX = null;
         this.attackTarget = null;
       }
@@ -289,6 +339,7 @@
 
     retreat(game) {
       if (this.state === 'dead') return;
+      this.leaveShelter(game);
       this.targetX = 180;
       this.state = 'retreating';
       this.attackTarget = null;
@@ -315,6 +366,7 @@
         this.soldiers = 0;
         this.state = 'dead';
         this.selected = false;
+        this.leaveShelter(game);
         this.activeTrench = null;
         this.digStandX = null;
         game.log(`${this.name} không còn khả năng chiến đấu.`, 'danger');
@@ -330,7 +382,8 @@
         id: this.id, type: this.type, x: this.x, health: this.health, soldiers: this.soldiers,
         morale: this.morale, state: this.state, targetX: this.targetX,
         selected: this.selected, activeTrenchId: this.activeTrench ? this.activeTrench.id : null,
-        digWorkRemaining: this.digWorkRemaining, digStandX: this.digStandX
+        digWorkRemaining: this.digWorkRemaining, digStandX: this.digStandX,
+        inTrench: this.inTrench, trenchId: this.trenchId
       };
     }
 
@@ -344,6 +397,9 @@
       this.targetX = data.targetX === null ? null : Number(data.targetX);
       this.selected = Boolean(data.selected && this.state !== 'dead');
       this.savedActiveTrenchId = data.activeTrenchId || null;
+      this.savedTrenchId = data.trenchId || null;
+      this.inTrench = Boolean(data.inTrench && this.savedTrenchId);
+      this.trenchId = this.inTrench ? this.savedTrenchId : null;
       this.digStandX = Number.isFinite(Number(data.digStandX)) ? Number(data.digStandX) : null;
       const savedDigWork = Number(data.digWorkRemaining);
       this.digWorkRemaining = Number.isFinite(savedDigWork) ? NS.clamp(savedDigWork, 0, this.digWorkPerTurn) : this.digWorkPerTurn;
@@ -376,9 +432,9 @@
       this.targetY = null;
       this.attackTarget = null;
       this.attackCooldown = 0;
-      this.maxShells = Math.max(1, Number(cfg.maxShells) || 3);
+      this.maxShells = Math.max(10, Number(cfg.maxShells) || 10);
       this.shells = Math.max(0, Math.min(this.maxShells, Number.isFinite(Number(cfg.shells)) ? Number(cfg.shells) : this.maxShells));
-      this.shotsRemaining = this.shells > 0 ? 1 : 0;
+      this.shotsRemaining = this.shells > 0 ? this.shells : 0;
       this.flashTime = 0;
       this.muzzleFlashTime = 0;
       this.lastDamageTurn = 0;
@@ -388,7 +444,7 @@
 
     startTurn() {
       if (this.state === 'dead') return;
-      this.shotsRemaining = this.shells > 0 ? 1 : 0;
+      this.shotsRemaining = this.shells > 0 ? this.shells : 0;
       if (this.state === 'attacking') this.state = 'idle';
     }
 
@@ -483,12 +539,21 @@
       const damage = this.attackDamage * (0.9 + Math.random() * 0.2) * (game.attackPowerMultiplier || 1);
       target.takeDamage(damage, ammo, game);
       game.effects.addFloatingText(target.x, target.y - 34, `-${Math.round(damage)}`, '#ffd47a');
-      this.attackTarget = null;
-      this.state = 'idle';
+      // Giữ nguyên mục tiêu để xe tăng tự bắn tiếp cho đến khi mục tiêu bị phá
+      // hoặc toàn bộ số đạn khả dụng đã được sử dụng.
+      if (!target.active || target.health <= 0 || this.shotsRemaining <= 0 || this.shells <= 0) {
+        this.stopAttack();
+      }
     }
 
-    moveTo(x, y, charge) {
+    stopAttack() {
+      this.attackTarget = null;
+      if (this.state !== 'dead') this.state = 'idle';
+    }
+
+    moveTo(x, y, charge, game) {
       if (this.state === 'dead') return;
+      this.leaveShelter(game);
       this.targetX = NS.clamp(Number(x), 20, NS.Constants.WORLD_WIDTH - 20);
       this.targetY = Number(y) || this.y;
       this.state = charge ? 'charging' : 'moving';
@@ -555,7 +620,7 @@
       const savedShells = Number(data.shells);
       this.shells = Number.isFinite(savedShells) ? NS.clamp(Math.round(savedShells), 0, this.maxShells) : this.maxShells;
       const savedShots = Number(data.shotsRemaining);
-      this.shotsRemaining = Number.isFinite(savedShots) ? NS.clamp(savedShots, 0, this.shells > 0 ? 1 : 0) : (this.shells > 0 ? 1 : 0);
+      this.shotsRemaining = Number.isFinite(savedShots) ? NS.clamp(savedShots, 0, this.shells) : (this.shells > 0 ? this.shells : 0);
     }
   }
 

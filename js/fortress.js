@@ -24,7 +24,10 @@
     }
 
     update(dt, game) {
-      this.y = game.terrain.getHeight(this.x) - this.height;
+      const groundY = game.terrain.getHeight(this.x);
+      this.y = this.type === 'aircraft'
+        ? groundY - this.height - Math.max(90, Number(this.altitude) || 165)
+        : groundY - this.height;
       this.flashTime = Math.max(0, this.flashTime - dt);
       if (!this.active || this.health <= 0) return;
       this.cooldown = Math.max(0, this.cooldown - dt);

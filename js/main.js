@@ -66,17 +66,19 @@
     const container = document.getElementById('mission-list');
     container.innerHTML = NS.CampaignMissions.map((mission) => {
       const completed = profile.completedMissions.includes(mission.id);
+      const unlocked = NS.Campaign.isMissionUnlocked(profile, mission.id);
       const map = NS.getMapConfig(mission.id);
-      return `<article class="mission-card ${completed ? 'is-completed' : ''}">
+      const status = completed ? '★ Đã chiến thắng' : (unlocked ? 'Sẵn sàng tác chiến' : '🔒 Chưa mở khóa');
+      return `<article class="mission-card ${completed ? 'is-completed' : ''} ${unlocked ? '' : 'is-locked'}">
         <div class="mission-card__number">${mission.order}</div>
         <div class="mission-card__body">
-          <div class="mission-card__status">${completed ? '★ Đã chiến thắng' : 'Sẵn sàng tác chiến'}</div>
+          <div class="mission-card__status">${status}</div>
           <h3>${mission.name}</h3><p class="mission-card__subtitle">${mission.subtitle} · ${mission.period}</p>
           <p>${mission.description}</p>
           <div class="mission-route-mini">${map.route.map((item) => `<span>${item}</span>`).join('<b>→</b>')}</div>
           <div class="mission-card__reward"><span class="vnd-coin vnd-coin--small">★</span> Thưởng cơ bản ${formatCoins(mission.reward)} xu</div>
         </div>
-        <button class="button button--primary mission-detail-button" data-mission-id="${mission.id}">Xem bản đồ</button>
+        <button class="button button--primary mission-detail-button" data-mission-id="${mission.id}" ${unlocked ? '' : 'disabled'}>${unlocked ? 'Xem bản đồ' : 'Hoàn thành màn trước'}</button>
       </article>`;
     }).join('');
     container.querySelectorAll('.mission-detail-button').forEach((button) => {
@@ -121,24 +123,35 @@
       const x2 = zone.to * sx;
       const mid = (x1 + x2) / 2;
       const groundY = 63 + terrain.getHeight((zone.from + zone.to) / 2) * sy;
-      const colors = { river: '#40839b', forest: '#38583a', minefield: '#8b6037', runway: '#7c7a72', hill: '#6d5a3d', basin: '#6f654c' };
+      const colors = { river: '#40839b', bridge: '#9b8a67', dugout: '#4a3828', forest: '#38583a', minefield: '#8b6037', obstacleBelt: '#725136', runway: '#7c7a72', hill: '#6d5a3d', basin: '#6f654c', openSlope: '#92734d', approachTrench: '#4a3828' };
       ctx.fillStyle = colors[zone.type] || (index % 2 ? 'rgba(250,220,130,.12)' : 'rgba(255,255,255,.06)');
       ctx.fillRect(x1, Math.max(40, groundY - 15), Math.max(4, x2 - x1), 14);
-      ctx.fillStyle = 'rgba(74,5,15,.88)'; ctx.fillRect(mid - 49, 14 + (index % 2) * 30, 98, 22);
+      const labelX = mid + (Number(zone.labelOffsetX) || 0) * sx;
+      const labelY = 14 + (index % 2) * 30 + (Number(zone.labelOffsetY) || 0) * 0.45;
+      ctx.fillStyle = 'rgba(74,5,15,.88)'; ctx.fillRect(labelX - 49, labelY, 98, 22);
       ctx.fillStyle = '#ffe56e'; ctx.font = 'bold 10px system-ui'; ctx.textAlign = 'center';
-      ctx.fillText(zone.label, mid, 29 + (index % 2) * 30);
+      ctx.fillText(zone.label, labelX, labelY + 15);
     });
 
     map.fortresses.forEach((item) => {
       const x = item.x * sx;
-      const y = 65 + terrain.getHeight(item.x) * sy;
-      ctx.fillStyle = item.type === 'wire' ? '#b7ada0' : item.type === 'minefield' ? '#bc8d42' : item.type === 'command' ? '#d9c3a1' : '#454942';
+      const groundY = 65 + terrain.getHeight(item.x) * sy;
+      const y = item.type === 'aircraft' ? groundY - (Number(item.altitude) || 165) * sy : groundY;
+      ctx.fillStyle = item.type === 'wire' ? '#b7ada0' : item.type === 'minefield' ? '#bc8d42' : item.type === 'command' ? '#d9c3a1' : item.type === 'enemyTank' ? '#5d684f' : '#454942';
       if (item.type === 'wire') {
-        ctx.strokeStyle = '#d6d0c5'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x - 10, y); ctx.lineTo(x - 4, y - 12); ctx.lineTo(x + 2, y); ctx.lineTo(x + 8, y - 12); ctx.stroke();
+        ctx.strokeStyle = '#d6d0c5'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x - 12, y); ctx.lineTo(x - 6, y - 12); ctx.lineTo(x, y); ctx.lineTo(x + 6, y - 12); ctx.lineTo(x + 12, y); ctx.stroke();
       } else if (item.type === 'minefield') {
-        ctx.beginPath(); ctx.arc(x, y - 6, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(x, y - 4, 8, 3, 0, 0, Math.PI * 2); ctx.fill();
+      } else if (item.type === 'aircraft') {
+        ctx.beginPath(); ctx.moveTo(x - 18, y); ctx.lineTo(x + 18, y - 3); ctx.lineTo(x + 22, y); ctx.lineTo(x + 18, y + 3); ctx.closePath(); ctx.fill();
+        ctx.fillRect(x - 7, y - 11, 14, 22);
+      } else if (item.type === 'enemyTank') {
+        ctx.fillRect(x - 15, y - 12, 30, 12); ctx.fillRect(x - 8, y - 18, 16, 7); ctx.fillRect(x - 24, y - 16, 18, 3);
+      } else if (item.type === 'artillery') {
+        ctx.beginPath(); ctx.arc(x - 6, y - 4, 5, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.arc(x + 6, y - 4, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillRect(x - 22, y - 14, 28, 4);
       } else {
-        ctx.fillRect(x - 7, y - 16, 14, 16);
+        ctx.fillRect(x - 8, y - 18, 16, 18);
       }
     });
     const flagX = map.flagX * sx;
@@ -182,7 +195,7 @@
       <article class="equipment-card is-unlocked"><div class="equipment-card__icon">♟</div><div><h3>Bộ binh</h3><p>Bốn đơn vị tác chiến. Quân số tối đa đã mua: ${infantryMax} người/đơn vị.</p>
         <div class="equipment-control"><button class="button loadout-step" data-field="infantryPerSquad" data-delta="-1">−</button><output id="loadout-infantry-value">${profile.loadout.infantryPerSquad}/${infantryMax} người</output><button class="button loadout-step" data-field="infantryPerSquad" data-delta="1">+</button></div></div></article>
       <article class="equipment-card is-unlocked"><div class="equipment-card__icon">✦</div><div><h3>Lựu pháo 105 mm</h3><p>Cơ số đạn hiện có theo từng loại:</p><div class="equipment-ammo-grid">${Object.keys(ammo).map((key) => `<span><b>${NS.AmmoTypes[key].symbol}</b><br>${ammo[key]} viên</span>`).join('')}</div></div></article>
-      <article class="equipment-card is-unlocked"><div class="equipment-card__icon">⛏</div><div><h3>Công binh và chiến hào</h3><p>Đại đội công binh đào hào ở phía trước đội hình. Hào hoàn thành giúp giảm sát thương khi di chuyển tiếp cận.</p><strong>Luôn có trong biên chế</strong></div></article>`;
+      <article class="equipment-card is-unlocked"><div class="equipment-card__icon">⛏</div><div><h3>Công binh và hầm trú ẩn</h3><p>Chọn tối đa bốn tổ bộ binh cùng đào một hầm chìm dưới mặt đất. Khi hoàn thành, các tổ được chọn tự chui xuống hầm và nhận che chắn cao.</p><strong>Luôn có trong biên chế</strong></div></article>`;
     document.querySelectorAll('.loadout-step').forEach((button) => {
       button.addEventListener('click', () => {
         const field = button.dataset.field;
@@ -257,6 +270,11 @@
   }
 
   function startMission() {
+    if (!NS.Campaign.isMissionUnlocked(profile, selectedMissionId)) {
+      window.alert('Cần hoàn thành màn trước để mở khóa cứ điểm này.');
+      setBaseScreen('missions');
+      return;
+    }
     profile.selectedMission = selectedMissionId;
     profile.selectedLevel = selectedLevel;
     profile = NS.Campaign.saveProfile(profile);

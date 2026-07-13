@@ -1,42 +1,50 @@
 (function (NS) {
   'use strict';
 
-  const PROFILE_KEY = 'duongToiChienThangProfileV1';
+  const PROFILE_KEY = 'duongToiChienThangProfileV2';
+  const LEGACY_PROFILE_KEY = 'duongToiChienThangProfileV1';
 
   NS.CampaignMissions = Object.freeze([
     Object.freeze({
-      id: 'him-lam', order: 1, name: 'Cứ điểm Him Lam', subtitle: 'Trận mở màn chiến dịch', reward: 14000, enemyScale: 0.9,
+      id: 'him-lam', order: 1, name: 'Đồi Him Lam', subtitle: 'Trận mở màn chiến dịch', reward: 14000, enemyScale: 0.9,
       period: '13/3/1954',
-      description: 'Mô phỏng tuyến tiến công từ rừng, vượt sông Nậm Rốm, qua đất trống, bãi mìn và dây thép gai để đánh lô cốt, chiến hào và hầm chỉ huy trên đồi.',
-      historicalSummary: 'Him Lam là mục tiêu mở màn của Chiến dịch Điện Biên Phủ. Bản đồ trong game là sơ đồ chiến thuật giản lược, nhấn mạnh các lớp chướng ngại và địa hình đồi.',
-      mapCaption: 'Rừng → sông Nậm Rốm → đất trống → bãi mìn → dây thép gai → lô cốt ngoài → chiến hào → hầm chỉ huy.'
+      description: 'Xuất phát trong rừng, vượt đất trống, mở dây thép gai rồi chế áp lô cốt và trận địa pháo địch trên đồi.',
+      historicalSummary: 'Him Lam là mục tiêu mở màn của Chiến dịch Điện Biên Phủ. Bản đồ là sơ đồ 2D giản lược, ưu tiên thể hiện hướng tiếp cận và các lớp phòng ngự chính.',
+      mapCaption: 'Rừng → đất trống → dây thép gai → lô cốt → pháo địch.'
     }),
     Object.freeze({
-      id: 'doc-lap', order: 2, name: 'Cứ điểm Độc Lập', subtitle: 'Cửa ngõ phía Bắc', reward: 18000, enemyScale: 1,
+      id: 'doc-lap', order: 2, name: 'Đồi Độc Lập', subtitle: 'Cửa ngõ phía Bắc', reward: 18000, enemyScale: 1,
       period: '15/3/1954',
-      description: 'Xuất phát từ khu tập kết, vượt đồng trống và chân đồi, mở bãi mìn–dây thép gai, phá công sự vòng ngoài rồi đánh lên lô cốt và hầm chỉ huy trên đỉnh.',
-      historicalSummary: 'Độc Lập là một trung tâm đề kháng ở phía Bắc. Game tái hiện đặc trưng tiến công từ địa hình thấp lên một cao điểm có nhiều lớp phòng ngự.',
-      mapCaption: 'Khu tập kết → đồng trống → chân đồi → bãi mìn và dây thép gai → công sự vòng ngoài → chiến hào → lô cốt trên đỉnh → hầm chỉ huy.'
+      description: 'Từ rừng tiến lên sườn đồi trống, mở bãi mìn và hàng rào trước khi đánh lô cốt, ụ súng và pháo địch.',
+      historicalSummary: 'Độc Lập là trung tâm đề kháng ở phía Bắc. Game nhấn mạnh khó khăn của việc tiến công từ địa hình thấp lên sườn đồi trống có chướng ngại.',
+      mapCaption: 'Rừng → sườn đồi trống → bãi mìn → hàng rào → lô cốt → ụ súng → pháo địch.'
     }),
     Object.freeze({
-      id: 'muong-thanh-airfield', order: 3, name: 'Sân bay Mường Thanh', subtitle: 'Cắt cầu hàng không', reward: 23000, enemyScale: 1.08,
+      id: 'c1', order: 3, name: 'Đồi C1', subtitle: 'Cao điểm phía Đông', reward: 22000, enemyScale: 1.08,
+      period: 'Đợt 2 của chiến dịch',
+      description: 'Xuất phát từ chiến hào, mở nhiều lớp mìn và hàng rào đan xen rồi đánh lô cốt, ụ súng và pháo địch trên cao điểm.',
+      historicalSummary: 'C1 thuộc hệ thống cao điểm phía Đông phân khu trung tâm. Bản đồ tập trung vào mạng chướng ngại dày và cách tiến công từng bước có hào che chắn.',
+      mapCaption: 'Chiến hào xuất phát → mìn và hàng rào đan xen → lô cốt → ụ súng → pháo địch.'
+    }),
+    Object.freeze({
+      id: 'muong-thanh-airfield', order: 4, name: 'Sân bay Mường Thanh', subtitle: 'Cắt cầu hàng không', reward: 26000, enemyScale: 1.12,
       period: 'Đợt 2–3 của chiến dịch',
-      description: 'Đào hào lấn dần, phá các cứ điểm bảo vệ, bố trí pháo khống chế đường băng và ngăn máy bay tiếp tế.',
-      historicalSummary: 'Sân bay Mường Thanh là đầu mối tiếp tế quan trọng của tập đoàn cứ điểm. Bản đồ nhấn mạnh chiến thuật đào hào tiếp cận và khống chế đường băng.',
-      mapCaption: 'Đào hào → phá cứ điểm bảo vệ → bố trí pháo → khống chế đường băng → ngăn máy bay.'
+      description: 'Từ chiến hào tiến ra đường băng, vô hiệu hóa xe tăng bảo vệ và dùng pháo bắn hạ máy bay tiếp tế.',
+      historicalSummary: 'Sân bay Mường Thanh là đầu mối tiếp tế quan trọng. Game mô phỏng việc áp sát bằng chiến hào, khống chế đường băng và ngăn tiếp tế đường không.',
+      mapCaption: 'Chiến hào xuất phát → đường băng → xe tăng địch → bắn máy bay.'
     }),
     Object.freeze({
-      id: 'muong-thanh-hq', order: 4, name: 'Sở chỉ huy Mường Thanh', subtitle: 'Mục tiêu cuối', reward: 30000, enemyScale: 1.18,
+      id: 'de-castries-hq', order: 5, name: 'Hầm De Castries', subtitle: 'Mục tiêu cuối chiến dịch', reward: 34000, enemyScale: 1.22,
       period: '7/5/1954',
-      description: 'Siết chiến hào bao vây trong lòng chảo, phá công sự vòng ngoài, ụ súng và xe tăng, vượt chiến hào trung tâm rồi chiếm hầm chỉ huy.',
-      historicalSummary: 'Phân khu trung tâm nằm trong lòng chảo Mường Thanh với hệ thống công sự liên hoàn. Game sử dụng sơ đồ giản lược để người chơi dễ thao tác.',
-      mapCaption: 'Chiến hào bao vây → công sự vòng ngoài → ụ súng và xe tăng → chiến hào trung tâm → hầm trú ẩn → hầm chỉ huy.'
+      description: 'Xuất phát từ hầm, vượt cầu Mường Thanh, mở dây thép gai và bãi mìn, đánh xe tăng, lô cốt, pháo địch rồi chiếm hầm chỉ huy.',
+      historicalSummary: 'Hầm chỉ huy De Castries nằm gần cầu Mường Thanh trong lòng chảo. Bản đồ là mô hình chiến thuật giản lược cho trận đánh mục tiêu cuối.',
+      mapCaption: 'Hầm → cầu Mường Thanh → dây thép gai → bãi mìn → xe tăng → lô cốt → pháo địch → hầm chỉ huy.'
     })
   ]);
 
   NS.ShopItems = Object.freeze([
     Object.freeze({ id: 'tank-count', category: 'tank', name: 'Số xe tăng yểm trợ', icon: '▰', basePrice: 18000, maxLevel: 2, unit: 'xe', description: 'Mỗi cấp mở thêm 1 xe tăng yểm trợ; tối đa 3 xe.' }),
-    Object.freeze({ id: 'tank-ammo', category: 'tank', name: 'Cơ số đạn xe tăng', icon: '◆', basePrice: 7000, maxLevel: 5, unit: 'viên/xe', description: 'Mỗi cấp tăng 1 viên cho mỗi xe; từ 3 lên tối đa 8 viên.' }),
+    Object.freeze({ id: 'tank-ammo', category: 'tank', name: 'Cơ số đạn xe tăng', icon: '◆', basePrice: 7000, maxLevel: 5, unit: 'viên/xe', description: 'Mỗi xe có tối thiểu 10 viên; mỗi cấp tăng thêm 1 viên, tối đa 15 viên/xe.' }),
     Object.freeze({ id: 'infantry-size', category: 'infantry', name: 'Quân số mỗi đại đội', icon: '♟', basePrice: 6000, maxLevel: 8, unit: 'người/đơn vị', description: 'Mỗi cấp tăng 1 bộ binh cho mỗi đơn vị; từ 10 lên tối đa 18.' }),
     Object.freeze({ id: 'ammo-he', category: 'artillery', ammo: 'he', name: 'Cơ số đạn nổ mạnh', icon: 'HE', basePrice: 4500, maxLevel: 5, description: 'Mỗi cấp tăng 2 viên đạn nổ mạnh.' }),
     Object.freeze({ id: 'ammo-ap', category: 'artillery', ammo: 'ap', name: 'Cơ số đạn xuyên phá', icon: 'AP', basePrice: 5200, maxLevel: 5, description: 'Mỗi cấp tăng 2 viên đạn xuyên phá.' }),
@@ -47,7 +55,7 @@
 
   function defaultProfile() {
     return {
-      version: 1,
+      version: 2,
       coins: 50000,
       completedMissions: [],
       purchases: {
@@ -69,6 +77,7 @@
     const profile = Object.assign({}, defaults, raw || {});
     profile.coins = Math.max(0, Math.round(Number(profile.coins) || 0));
     profile.completedMissions = Array.isArray(profile.completedMissions) ? profile.completedMissions.filter(Boolean) : [];
+    profile.completedMissions = profile.completedMissions.map((id) => id === 'muong-thanh-hq' ? 'de-castries-hq' : id);
     profile.history = Array.isArray(profile.history) ? profile.history.slice(0, 100) : [];
     profile.recentQuestionIds = Array.isArray(profile.recentQuestionIds) ? profile.recentQuestionIds.slice(-12) : [];
     profile.purchases = Object.assign({}, defaults.purchases, raw && raw.purchases || {});
@@ -83,6 +92,7 @@
     profile.loadout = Object.assign({}, defaults.loadout, raw && raw.loadout || {});
     profile.loadout.tanks = Math.max(1, Math.min(profile.purchases.tankCount, Math.round(Number(profile.loadout.tanks) || 1)));
     profile.loadout.infantryPerSquad = Math.max(8, Math.min(maxInfantry, Math.round(Number(profile.loadout.infantryPerSquad) || maxInfantry)));
+    if (profile.selectedMission === 'muong-thanh-hq') profile.selectedMission = 'de-castries-hq';
     if (!NS.MapConfigs[profile.selectedMission]) profile.selectedMission = 'him-lam';
     if (!NS.Difficulty[profile.selectedLevel]) profile.selectedLevel = 'easy';
     return profile;
@@ -98,8 +108,10 @@
 
   const Campaign = {
     loadProfile() {
-      try { return normalizeProfile(JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null')); }
-      catch (error) { return defaultProfile(); }
+      try {
+        const raw = localStorage.getItem(PROFILE_KEY) || localStorage.getItem(LEGACY_PROFILE_KEY) || 'null';
+        return normalizeProfile(JSON.parse(raw));
+      } catch (error) { return defaultProfile(); }
     },
 
     saveProfile(profile) {
@@ -110,8 +122,13 @@
 
     resetProfile() { const profile = defaultProfile(); this.saveProfile(profile); return profile; },
     getMission(id) { return NS.CampaignMissions.find((mission) => mission.id === id) || NS.CampaignMissions[0]; },
-    isMissionUnlocked() { return true; },
-    getTankMaxShells(profile) { return 3 + Math.max(0, Math.min(5, profile.purchases.tankAmmoLevel || 0)); },
+    isMissionUnlocked(profile, missionId) {
+      const mission = this.getMission(missionId);
+      if (!mission || mission.order <= 1) return true;
+      const previous = NS.CampaignMissions.find((item) => item.order === mission.order - 1);
+      return Boolean(previous && profile && profile.completedMissions.includes(previous.id));
+    },
+    getTankMaxShells(profile) { return 10 + Math.max(0, Math.min(5, profile.purchases.tankAmmoLevel || 0)); },
     getMaxInfantryPerSquad(profile) { return 10 + Math.max(0, Math.min(8, profile.purchases.infantryLevel || 0)); },
 
     getItemState(profile, item) {
@@ -163,7 +180,7 @@
     applyMissionLoadout(profile, mission, game) {
       const tankMax = this.getTankMaxShells(profile);
       game.squads.forEach((unit) => {
-        if (unit.type === 'tank') { unit.maxShells = tankMax; unit.shells = tankMax; unit.shotsRemaining = 1; }
+        if (unit.type === 'tank') { unit.maxShells = tankMax; unit.shells = tankMax; unit.shotsRemaining = tankMax; }
       });
       game.resources.ammo = NS.createInitialAmmo(profile);
       const difficulty = NS.Difficulty[game.difficulty] || NS.Difficulty.medium;

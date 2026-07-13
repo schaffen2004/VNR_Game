@@ -52,31 +52,46 @@
         const x = i * this.step;
         let y = 650 + Math.sin(x * 0.008) * 10 + Math.sin(x * 0.021 + 1.2) * 6;
 
-        if (profile === 'hill') {
-          // Him Lam: vùng thấp ở đầu bản đồ, vượt sông rồi leo dần lên đồi.
-          if (x > 1500) {
-            const t = NS.clamp((x - 1500) / 850, 0, 1);
-            y -= 245 * (t * t * (3 - 2 * t));
+        if (profile === 'himLam' || profile === 'hill') {
+          // Him Lam: rừng tương đối thấp, đất trống rồi sườn đồi tăng dần về phía cứ điểm.
+          y = 646 + Math.sin(x * 0.009) * 7;
+          if (x > 1420) {
+            const t = NS.clamp((x - 1420) / 980, 0, 1);
+            y -= 235 * (t * t * (3 - 2 * t));
           }
-          if (x >= 500 && x <= 650) y += 24 * Math.sin(((x - 500) / 150) * Math.PI);
-        } else if (profile === 'ridge') {
-          // Độc Lập: chân đồi dài và đỉnh cao, sườn dốc hơn Him Lam.
-          if (x > 980) {
-            const t = NS.clamp((x - 980) / 1320, 0, 1);
-            y -= 285 * (t * t * (3 - 2 * t));
+          if (x < 620) y += Math.sin(x * 0.035) * 8;
+        } else if (profile === 'docLap' || profile === 'ridge') {
+          // Độc Lập: sườn đồi trống dài, dốc rõ và đỉnh cao ở phía phải.
+          y = 655 + Math.sin(x * 0.008) * 6;
+          if (x > 500) {
+            const t = NS.clamp((x - 500) / 1880, 0, 1);
+            y -= 300 * (t * t * (3 - 2 * t));
           }
-          if (x > 2200) y += (x - 2200) * 0.12;
+          if (x > 2260) y += (x - 2260) * 0.12;
+        } else if (profile === 'c1') {
+          // C1: nền xuất phát đã có chiến hào, các bậc sườn đồi ngắn và gắt hơn.
+          y = 640 + Math.sin(x * 0.011) * 7;
+          if (x > 620) {
+            const t = NS.clamp((x - 620) / 1750, 0, 1);
+            y -= 260 * (t * t * (3 - 2 * t));
+          }
+          if (x > 850 && x < 1680) y += Math.sin(x * 0.026) * 10;
+          if (x > 2050) y += (x - 2050) * 0.055;
         } else if (profile === 'airfield') {
-          // Mường Thanh: lòng chảo tương đối phẳng, đường băng nằm ở nửa phải.
-          y = 610 + Math.sin(x * 0.008) * 8;
-          if (x < 950) y += Math.sin(x * 0.022) * 12;
-          if (x >= 1800) y = 603 + Math.sin(x * 0.004) * 2.5;
-        } else if (profile === 'basin') {
-          // Sở chỉ huy ở lòng chảo: hai rìa cao, vùng trung tâm thấp.
-          const center = 1900;
+          // Sân bay Mường Thanh: chiến hào ở mép tây, đường băng gần như phẳng.
+          y = 618 + Math.sin(x * 0.009) * 5;
+          if (x < 700) y += Math.sin(x * 0.028) * 10;
+          if (x >= 700) y = 610 + Math.sin(x * 0.004) * 2.2;
+        } else if (profile === 'deCastries' || profile === 'basin') {
+          // Khu hầm De Castries nằm trong lòng chảo; đoạn sông/cầu thấp hơn hai bờ.
+          const center = 1780;
           const d = Math.abs(x - center) / 1500;
-          y = 565 + Math.min(125, d * d * 150) + Math.sin(x * 0.014) * 7;
-          if (x > 2200) y -= 22;
+          y = 570 + Math.min(100, d * d * 130) + Math.sin(x * 0.013) * 5;
+          if (x >= 610 && x <= 830) {
+            const t = (x - 610) / 220;
+            y += 18 * Math.sin(t * Math.PI);
+          }
+          if (x > 2250) y -= 18;
         }
 
         y += Math.sin(x * 0.038) * 3.5;

@@ -176,16 +176,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 }
 
 .hud-panel, .game-controls { z-index: 6; }
-.tech-badge {
-  padding: 4px 8px;
-  border: 1px solid rgba(185, 214, 143, .34);
-  border-radius: 999px;
-  color: #c9daa8;
-  background: rgba(49, 65, 38, .65);
-  font-size: 10px;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-}
 
 .menu-card {
   position: relative;
@@ -320,6 +310,7 @@ body { background: #2b0308; }
 .home-action small { color: #e5c9ad; }
 .home-action--primary { background: linear-gradient(180deg, #e0243a, #8e0a1d); border-color: #ffe363; }
 .menu-settings-row { display: grid; grid-template-columns: 1fr 1fr auto auto; align-items: end; gap: 10px; max-width: 900px; margin: 0 auto; padding: 14px; border: 1px solid rgba(255,222,56,.2); border-radius: 12px; background: rgba(57,2,10,.6); }
+.menu-settings-note { display: grid; place-items: center; text-align: center; color: #ffeaa1; min-height: 100%; }
 .menu-settings-row label { text-align: left; font-size: 12px; font-weight: 800; color: #ffe894; }
 .menu-settings-row .select-control { margin-top: 5px; }
 .hero-panel .historical-note { max-width: 850px; margin: 24px auto 0; }
@@ -401,7 +392,6 @@ body { background: #2b0308; }
 #phase-indicator { color: #5b0710; background: #ffdc3e; }
 #objective-value { color: #ffe77e; }
 .command-button.is-active { color: #5b0710; background: #ffdb3c; border-color: #fff1a1; }
-.tech-badge { color: #ffe984; background: rgba(135,9,27,.76); border-color: rgba(255,223,56,.34); }
 .bar > span { background: #f3bf35; }
 .bar--morale > span { background: #e63442; }
 .log-line--important { color: #ffe064; }
@@ -441,7 +431,7 @@ body { background: #2b0308; }
   .history-row > div:nth-child(3), .history-row > div:nth-child(4) { grid-column: 2; }
 }
 
-/* Đường tới chiến thắng V1: giao diện mới, Canvas 2D thuần. */
+/* Đường tới chiến thắng V2: năm bản đồ, Canvas 2D thuần. */
 :root {
   --red: #b5121b;
   --red-dark: #5d0710;
@@ -456,7 +446,6 @@ body { background: #2b0308; }
 .campaign-home::before, .menu-card::before { animation: none !important; }
 
 .button--large { min-height: 52px; padding: 13px 20px; font-size: 16px; }
-.cpu-mode-note { color: #ffeaa1; font-size: 12px; }
 .main-menu-grid { grid-template-columns: repeat(3, minmax(150px, 1fr)); }
 .home-action:last-child { grid-column: auto; }
 
@@ -512,4 +501,17 @@ body { background: #2b0308; }
   .main-menu-grid { grid-template-columns: 1fr 1fr; }
   .level-picker { grid-template-columns: 1fr; }
   .equipment-ammo-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Trạng thái màn chơi chưa mở khóa */
+.mission-card.is-locked {
+  filter: saturate(.5);
+  opacity: .68;
+}
+.mission-card.is-locked .mission-card__number {
+  background: #6f665c;
+  color: #eee3c2;
+}
+.mission-card.is-locked .mission-detail-button {
+  cursor: not-allowed;
 }

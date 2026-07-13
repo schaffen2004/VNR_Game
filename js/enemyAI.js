@@ -73,9 +73,18 @@
 
       const scatterBase = sourceType === 'mortar' ? 75 : 58;
       const scatter = scatterBase / difficulty.enemyAccuracy;
-      const impactX = NS.clamp(targetX + (Math.random() - 0.5) * scatter * 2, 30, NS.Constants.WORLD_WIDTH - 30);
-      const impactY = game.terrain.getHeight(impactX);
+      const desiredImpactX = NS.clamp(targetX + (Math.random() - 0.5) * scatter * 2, 30, NS.Constants.WORLD_WIDTH - 30);
+      const impactX = this.findSafeImpactX(desiredImpactX, sourceStructure, strike.radius);
 
+      // Khi quân ta áp sát công sự địch, pháo không được phép bắn vào vùng có nguy cơ
+      // gây nổ trên chính lô cốt, xe tăng, hàng rào hoặc hầm của địch.
+      if (impactX === null || Math.abs(impactX - desiredImpactX) > 230) {
+        game.enemyIndirectShotFired = true;
+        game.log(`${sourceStructure.name} ngừng bắn vì mục tiêu ở quá gần công sự đồng minh.`, 'important');
+        return;
+      }
+
+      const impactY = game.terrain.getHeight(impactX);
       game.enemyIndirectShotFired = true;
       game.effects.addWarning(impactX, impactY, strike.radius, strike.delay, () => {
         this.launchEnemyShell(sourceStructure, impactX, strike);
@@ -87,6 +96,37 @@
 
       game.audio.play('warning');
       game.log(`${sourceStructure.name} được lệnh bắn đúng một phát vào khu vực x=${Math.round(impactX)}.`, 'danger');
+    }
+
+    getStructureSafetyRadius(structure, strikeRadius) {
+      const width = Math.max(24, Number(structure.width) || 40);
+      const base = width * 0.5 + strikeRadius + NS.Constants.ENEMY_ARTILLERY_SAFE_MARGIN;
+      if (structure.type === 'command' || structure.type === 'bunker') return base + 25;
+      if (structure.type === 'enemyTank' || structure.type === 'artillery') return base + 18;
+      return base;
+    }
+
+    isImpactSafe(impactX, sourceStructure, strikeRadius) {
+      return this.game.fortresses.every((structure) => {
+        if (!structure.active || structure.id === sourceStructure.id || structure.type === 'aircraft') return true;
+        return Math.abs(structure.x - impactX) > this.getStructureSafetyRadius(structure, strikeRadius);
+      });
+    }
+
+    findSafeImpactX(desiredImpactX, sourceStructure, strikeRadius) {
+      const directionToTarget = Math.sign(desiredImpactX - sourceStructure.x) || -1;
+      const offsets = [0];
+      for (let distance = 45; distance <= 420; distance += 45) {
+        // Chỉ dịch điểm rơi theo hướng từ khẩu pháo ra phía mục tiêu/người chơi.
+        // Không dời ngược vào sâu trong hệ thống công sự của chính địch.
+        offsets.push(directionToTarget * distance);
+      }
+      for (const offset of offsets) {
+        const candidate = NS.clamp(desiredImpactX + offset, 35, NS.Constants.WORLD_WIDTH - 35);
+        if (Math.abs(candidate - sourceStructure.x) < 125) continue;
+        if (this.isImpactSafe(candidate, sourceStructure, strikeRadius)) return candidate;
+      }
+      return null;
     }
 
     getMuzzlePosition(source, sourceType) {

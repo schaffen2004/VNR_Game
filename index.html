@@ -18,7 +18,7 @@
         <div class="wallet" aria-label="Số xu hiện có"><span class="vnd-coin">★</span><strong id="wallet-value">0</strong><span>xu</span></div>
       </header>
       <div class="hero-panel">
-        <p class="eyebrow">CHIẾN DỊCH ĐIỆN BIÊN PHỦ · CANVAS 2D CPU/RAM</p>
+        <p class="eyebrow">CHIẾN DỊCH ĐIỆN BIÊN PHỦ</p>
         <h1>Đường tới chiến thắng</h1>
         <p class="subtitle">Chỉ huy pháo binh, bộ binh, công binh và lực lượng yểm trợ để vượt chướng ngại, phá công sự và chiếm các mục tiêu của chiến dịch.</p>
         <div class="main-menu-grid">
@@ -31,7 +31,7 @@
         </div>
         <div class="menu-settings-row">
           <button id="continue-button" class="button button--primary" hidden>Tiếp tục trận đang lưu</button>
-          <span class="cpu-mode-note">Canvas 2D thuần CPU · DPR 1 · tối ưu RAM</span>
+          <span class="menu-settings-note">Game 2D chiến thuật</span>
         </div>
         <p class="historical-note">Bản đồ và khí tài được minh họa theo ảnh tư liệu ở mức giản lược. Xe tăng yểm trợ của người chơi là cơ chế giả lập gameplay, không phải biên chế lịch sử của quân ta tại Điện Biên Phủ năm 1954.</p>
       </div>
@@ -94,8 +94,8 @@
         <div class="subscreen-heading"><button class="back-home-button button">← Trang chính</button><div><p class="eyebrow">ÂM THANH VÀ HIỆU NĂNG</p><h2>Cài đặt</h2></div></div>
         <div class="settings-grid">
           <article class="settings-card"><h3>Nhạc nền</h3><label class="toggle-row"><input id="music-enabled-input" type="checkbox" checked><span>Bật nhạc nền chiến trường</span></label><label>Âm lượng <input id="music-volume-input" type="range" min="0" max="1" step="0.05" value="0.22"><output id="music-volume-value">22%</output></label></article>
-          <article class="settings-card"><h3>Hiệu ứng game</h3><label class="toggle-row"><input id="sfx-enabled-input" type="checkbox" checked><span>Bật tiếng pháo, súng, nổ và đào hào</span></label><label>Âm lượng <input id="sfx-volume-input" type="range" min="0" max="1" step="0.05" value="0.55"><output id="sfx-volume-value">55%</output></label><button id="test-sound-button" class="button">Nghe thử tiếng pháo</button></article>
-          <article class="settings-card"><h3>Chế độ hiển thị</h3><p>Canvas 2D thuần, không WebGL, không lớp Canvas GPU thứ hai. Độ phân giải nội bộ giới hạn DPR = 1 và khoảng 45 FPS.</p><button id="reset-progress-button" class="button button--danger">Đặt lại xu, cửa hàng và lịch sử</button></article>
+          <article class="settings-card"><h3>Hiệu ứng game</h3><label class="toggle-row"><input id="sfx-enabled-input" type="checkbox" checked><span>Bật tiếng pháo, súng, nổ và đào hầm</span></label><label>Âm lượng <input id="sfx-volume-input" type="range" min="0" max="1" step="0.05" value="0.55"><output id="sfx-volume-value">55%</output></label><button id="test-sound-button" class="button">Nghe thử tiếng pháo</button></article>
+          <article class="settings-card"><h3>Dữ liệu người chơi</h3><p>Đặt lại xu, cửa hàng và lịch sử nếu bạn muốn bắt đầu lại chiến dịch từ đầu.</p><button id="reset-progress-button" class="button button--danger">Đặt lại xu, cửa hàng và lịch sử</button></article>
         </div>
       </div>
     </section>
@@ -106,7 +106,7 @@
         <div id="top-hud" class="hud-panel top-hud">
           <div><strong id="mission-title-value">Đường tới chiến thắng</strong></div>
           <div>Lượt <span id="turn-value">1</span>/<span id="max-turn-value">∞</span></div>
-          <div id="phase-indicator">Quan sát</div><div class="tech-badge">Canvas 2D</div>
+          <div id="phase-indicator">Quan sát</div>
           <div>Gió: <span id="wind-value">0</span></div><div>Lực lượt: <strong id="attack-power-value">100%</strong></div>
           <div id="objective-value">Quan sát địa hình</div>
         </div>
@@ -120,7 +120,7 @@
         <div id="command-panel" class="hud-panel command-panel">
           <div class="panel-title">Mệnh lệnh</div>
           <div class="command-grid">
-            <button class="command-button is-active" data-command="move">Di chuyển (M)</button><button class="command-button" data-command="dig">Đào hào (T)</button>
+            <button class="command-button is-active" data-command="move">Di chuyển (M)</button><button class="command-button" data-command="dig">Đào hầm (T)</button>
             <button class="command-button" data-command="attack">Bắn / tấn công (F)</button><button class="command-button" data-command="hide">Ẩn nấp</button>
             <button class="command-button" data-command="charge">Xung phong</button><button class="command-button" data-command="retreat">Rút lui (R)</button>
           </div>
@@ -144,7 +144,7 @@
           <article><h3>Mục tiêu</h3><p>Dùng pháo, bộ binh và xe tăng yểm trợ để vô hiệu hóa hầm chỉ huy rồi đưa bộ binh đến điểm cắm cờ.</p></article>
           <article><h3>Câu hỏi mỗi lượt</h3><p>Trước giai đoạn pháo kích, trả lời một câu ngẫu nhiên theo level. Sai làm toàn bộ sát thương của quân ta trong lượt giảm 50%.</p></article>
           <article><h3>Điều khiển</h3><p>A/D di chuyển camera, con lăn zoom, mũi tên chỉnh pháo, Space bắn, E chuyển giai đoạn, M/T/F đổi lệnh.</p></article>
-          <article><h3>Đào hào</h3><p>Chọn bộ binh, bật Đào hào rồi chọn điểm phía trước. Lính đứng phía sau đầu hào; mỗi đoạn cần nhiều lượt.</p></article>
+          <article><h3>Đào hầm</h3><p>Chọn bộ binh, bật Đào hầm rồi chọn điểm phía trước. Hầm trú ẩn được đào chìm dưới mặt đất. Các tổ bộ binh đang được chọn sẽ cùng đào và tự chui xuống hầm khi hoàn thành; ra lệnh di chuyển hoặc tấn công để họ rời hầm.</p></article>
           <article><h3>Công sự</h3><p>Hào che chắn, lô cốt/ụ súng bắn thẳng, dây thép gai chặn bộ binh, bãi mìn gây sát thương, pháo/cối bắn xa.</p></article>
           <article><h3>Thắng và thua</h3><p>Thắng khi chiếm cứ điểm. Chỉ thua khi toàn bộ bộ binh, xe tăng và pháo của ta đều bị loại khỏi vòng chiến.</p></article>
         </div>

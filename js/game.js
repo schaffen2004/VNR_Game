@@ -36,7 +36,7 @@
       this.difficulty = NS.Difficulty[difficulty] ? difficulty : 'easy';
       this.profile = NS.Campaign ? NS.Campaign.loadProfile() : this.profile;
       this.currentMissionId = missionId || this.currentMissionId || 'him-lam';
-      this.missionConfig = NS.Campaign ? NS.Campaign.getMission(this.currentMissionId) : { id: 'him-lam', name: 'Cứ điểm Him Lam', enemyScale: 1 };
+      this.missionConfig = NS.Campaign ? NS.Campaign.getMission(this.currentMissionId) : { id: 'him-lam', name: 'Đồi Him Lam', enemyScale: 1 };
       this.mapConfig = NS.getMapConfig(this.currentMissionId);
       if (this.profile) { this.profile.selectedMission = this.currentMissionId; NS.Campaign.saveProfile(this.profile); }
       this.terrain = new NS.Terrain(NS.Constants.WORLD_WIDTH, NS.Constants.WORLD_HEIGHT, NS.Constants.TERRAIN_STEP, this.mapConfig);
@@ -55,7 +55,12 @@
       });
       this.trenches = [];
       this.fortresses = NS.createFortressConfigs(this.currentMissionId).map((config) => new NS.Fortress(config));
-      this.fortresses.forEach((item) => { item.y = this.terrain.getHeight(item.x) - item.height; });
+      this.fortresses.forEach((item) => {
+        const groundY = this.terrain.getHeight(item.x);
+        item.y = item.type === 'aircraft'
+          ? groundY - item.height - Math.max(90, Number(item.altitude) || 165)
+          : groundY - item.height;
+      });
       this.projectiles = [];
       this.enemyAI = new NS.EnemyAI(this);
       this.phase = NS.GamePhase.OBSERVATION;
@@ -65,7 +70,6 @@
       this.firedThisPhase = false;
       this.enemyPhaseTimer = 0;
       this.enemyIndirectShotFired = false;
-      this.flagHoldTurns = 0;
       this.attackPowerMultiplier = 1;
       this.turnQuestionAnswered = false;
       this.missionStage = 1;
@@ -192,6 +196,16 @@
 
     changePhase(nextPhase) {
       if (this.result || this.paused) return;
+      // Lệnh tự động tấn công chỉ hoạt động trong giai đoạn Điều binh hiện tại.
+      // Khi kết thúc giai đoạn, đơn vị dừng bắn để không bỏ qua câu hỏi của lượt sau.
+      if (this.phase === NS.GamePhase.COMMAND && nextPhase !== NS.GamePhase.COMMAND) {
+        this.squads.forEach((unit) => {
+          if (unit.state === 'attacking') {
+            if (typeof unit.stopAttack === 'function') unit.stopAttack();
+            else { unit.attackTarget = null; unit.state = 'idle'; }
+          }
+        });
+      }
       this.phase = nextPhase;
       if (nextPhase === NS.GamePhase.ARTILLERY) {
         this.firedThisPhase = false;
@@ -200,7 +214,7 @@
       } else if (nextPhase === NS.GamePhase.COMMAND) {
         this.resources.actionPoints = NS.Constants.COMMAND_ACTION_POINTS;
         this.camera.focus(this.getFrontlineX(), this.terrain.getHeight(this.getFrontlineX()) - 150);
-        this.log('Giai đoạn Điều binh: sử dụng điểm hành động để cơ động và đào hào.', 'important');
+        this.log('Giai đoạn Điều binh: sử dụng điểm hành động để cơ động, đào hầm trú ẩn và tiến công.', 'important');
       } else if (nextPhase === NS.GamePhase.ENEMY) {
         this.resources.actionPoints = 0;
         this.enemyIndirectShotFired = false;
@@ -242,7 +256,6 @@
 
     startNextTurn() {
       this.effects.nextTurn();
-      this.updateFlagHold();
       if (this.result) return;
       this.turn += 1;
       this.wind = this.generateWind();
@@ -312,7 +325,7 @@
       if (this.commandMode === 'move' || this.commandMode === 'charge') {
         const cost = this.commandMode === 'charge' ? 2 : 1;
         if (!this.spendActionPoints(cost)) return;
-        selected.forEach((unit, index) => unit.moveTo(x - index * 16, y, this.commandMode === 'charge'));
+        selected.forEach((unit, index) => unit.moveTo(x - index * 16, y, this.commandMode === 'charge', this));
         this.log(this.commandMode === 'charge' ? 'Các tổ bộ binh bắt đầu xung phong.' : 'Đã ban lệnh di chuyển.');
       } else if (this.commandMode === 'dig') {
         this.createTrenchesForSelected(selected, x);
@@ -324,13 +337,13 @@
         }
         const eligible = selected.filter((unit) => unit.type !== 'tank' || unit.shotsRemaining > 0);
         if (!eligible.length) {
-          this.log('Các xe tăng đã dùng hết phát bắn yểm trợ trong lượt này.', 'danger');
+          this.log('Các xe tăng đã hết đạn hoặc không còn khả năng khai hỏa.', 'danger');
           return;
         }
         const attackCost = eligible.reduce((sum, unit) => sum + (unit.type === 'tank' ? 2 : 1), 0);
         if (!this.spendActionPoints(attackCost)) return;
-        eligible.forEach((unit) => unit.attack(target));
-        this.log(`Đã lệnh cho ${eligible.length} đơn vị bắn vào ${target.name} (${attackCost} điểm hành động).`, 'important');
+        eligible.forEach((unit) => unit.attack(target, this));
+        this.log(`Đã lệnh cho ${eligible.length} đơn vị tự động tấn công ${target.name} đến khi mục tiêu bị phá hoặc hết đạn (${attackCost} điểm hành động).`, 'important');
       }
       this.updateHUD(true);
     }
@@ -338,59 +351,54 @@
     createTrenchesForSelected(selected, targetX) {
       const infantry = selected.filter((unit) => unit.type === 'infantry' && unit.state !== 'dead');
       if (!infantry.length) {
-        this.log('Chỉ bộ binh mới có thể đào chiến hào.', 'danger');
+        this.log('Chỉ bộ binh mới có thể đào hầm trú ẩn.', 'danger');
         return;
       }
 
-      // Mỗi lệnh chỉ giao một tổ đào một đoạn để tránh nhiều hào chồng lên nhau.
-      infantry.sort((a, b) => {
-        if (a.engineer !== b.engineer) return a.engineer ? -1 : 1;
-        return Math.abs(a.x - targetX) - Math.abs(b.x - targetX);
-      });
-      const unit = infantry[0];
-      const direction = Math.sign(targetX - unit.x) || 1;
-      const startX = this.findTrenchStart(unit, targetX);
-      const rawDelta = targetX - startX;
-      let delta = NS.clamp(rawDelta, -NS.Constants.MAX_TRENCH_LENGTH, NS.Constants.MAX_TRENCH_LENGTH);
-
-      // Khi người chơi bấm gần đội hình, vẫn tạo một đoạn hào tối thiểu ở phía trước.
-      if (Math.abs(delta) < NS.Constants.MIN_TRENCH_LENGTH) {
-        delta = direction * NS.Constants.MIN_TRENCH_LENGTH;
+      const builders = infantry.slice(0, NS.Constants.DUGOUT_MAX_CAPACITY);
+      const averageX = builders.reduce((sum, unit) => sum + unit.x, 0) / builders.length;
+      const direction = Math.sign(targetX - averageX) || 1;
+      let centerX = NS.clamp(Number(targetX), 80, NS.Constants.WORLD_WIDTH - 80);
+      if (Math.abs(centerX - averageX) < NS.Constants.TRENCH_FRONT_OFFSET) {
+        centerX = NS.clamp(averageX + direction * NS.Constants.TRENCH_FRONT_OFFSET, 80, NS.Constants.WORLD_WIDTH - 80);
       }
 
-      const endX = NS.clamp(startX + delta, 25, NS.Constants.WORLD_WIDTH - 25);
-      if (Math.abs(endX - startX) < NS.Constants.MIN_TRENCH_LENGTH - 1) {
-        this.log('Không đủ khoảng trống phía trước để đào đoạn hào này.', 'danger');
-        return;
-      }
+      const width = NS.clamp(84 + builders.length * 18, 102, 150);
+      const startX = centerX - width * 0.5;
+      const endX = centerX + width * 0.5;
       const validation = this.validateTrenchPath(startX, endX);
       if (!validation.valid) {
-        this.log(validation.reason, 'danger');
+        this.log(validation.reason.replace(/hào/gi, 'hầm'), 'danger');
         return;
       }
 
-      const length = Math.abs(endX - startX);
-      const cost = Math.max(8, Math.ceil(length / 16));
+      const cost = 10 + builders.length * 3;
       if (this.resources.engineeringPoints < cost) {
-        this.log('Không đủ điểm công binh để đào đoạn hào này.', 'danger');
+        this.log('Không đủ điểm công binh để đào hầm trú ẩn.', 'danger');
         return;
       }
       if (!this.spendActionPoints(2)) return;
 
-      const trench = new NS.Trench({
+      const dugout = new NS.Trench({
+        type: 'dugout',
         startX,
-        startY: this.terrain.getHeight(startX),
+        startY: this.terrain.getHeight(centerX),
         endX,
-        endY: this.terrain.getHeight(endX),
+        endY: this.terrain.getHeight(centerX),
+        centerX,
+        width,
+        depth: NS.Constants.DUGOUT_DEPTH,
+        capacity: builders.length,
+        assignedUnitIds: builders.map((unit) => unit.id),
         progress: 0,
         durability: 100,
-        builderId: unit.id
+        builderId: builders[0].id
       });
+
       this.resources.engineeringPoints = Math.max(0, this.resources.engineeringPoints - cost);
-      this.connectTrench(trench);
-      this.trenches.push(trench);
-      unit.digTrench(trench);
-      this.log(`${unit.name} bắt đầu đào hào ở phía trước đội hình, dài ${Math.round(length)}; cần nhiều lượt để hoàn thành.`, 'important');
+      this.trenches.push(dugout);
+      builders.forEach((unit, index) => unit.digTrench(dugout, index, this));
+      this.log(`${builders.length} tổ bộ binh bắt đầu đào hầm trú ẩn. Khi hoàn thành, các tổ được chọn sẽ tự chui xuống hầm.`, 'important');
     }
 
     findTrenchStart(unit, targetX) {
@@ -425,7 +433,7 @@
 
       for (let x = minX; x <= maxX; x += 10) {
         if (Math.abs(this.terrain.getSlope(x)) > 1.15) {
-          return { valid: false, reason: 'Địa hình đoạn này quá dốc hoặc đã bị phá hủy nặng để đào hào ổn định.' };
+          return { valid: false, reason: 'Địa hình đoạn này quá dốc hoặc đã bị phá hủy nặng để đào hầm ổn định.' };
         }
       }
 
@@ -435,7 +443,7 @@
         const overlap = Math.min(maxX, trenchMax) - Math.max(minX, trenchMin);
         return overlap > 28;
       });
-      if (overlaps) return { valid: false, reason: 'Tuyến hào mới chồng quá nhiều lên một đoạn hào đã có.' };
+      if (overlaps) return { valid: false, reason: 'Vị trí hầm mới chồng lên một hầm trú ẩn đã có.' };
       return { valid: true, reason: '' };
     }
 
@@ -561,13 +569,15 @@
       if (!landmark) return 1;
       if (landmark.type === 'river') return unitType === 'tank' ? 0.58 : 0.52;
       if (landmark.type === 'forest') return unitType === 'tank' ? 0.7 : 0.82;
-      if (landmark.type === 'foothill' || landmark.type === 'hill') return unitType === 'tank' ? 0.82 : 0.9;
+      if (landmark.type === 'foothill' || landmark.type === 'hill' || landmark.type === 'openSlope') return unitType === 'tank' ? 0.82 : 0.9;
+      if (landmark.type === 'bridge') return unitType === 'tank' ? 0.78 : 0.94;
       if (landmark.type === 'runway') return 1.05;
       return 1;
     }
 
     applyMinefieldHazard(unit) {
       if (!unit || unit.state === 'dead' || unit.mineTriggerCooldown > 0) return;
+      if (unit.type === 'infantry' && unit.inTrench) return;
       const minefield = this.fortresses.find((item) => item.type === 'minefield' && item.active && Math.abs(item.x - unit.x) <= item.width * 0.5);
       if (!minefield) return;
       unit.mineTriggerCooldown = 1.4;
@@ -621,6 +631,9 @@
 
       this.fortresses.forEach((structure) => {
         if (!structure.active) return;
+        // Tắt sát thương đồng đội của hỏa lực gián tiếp địch. Pháo địch vẫn có thể
+        // làm biến dạng địa hình và gây sát thương cho quân ta, nhưng không phá công sự của chính nó.
+        if (owner === 'enemy') return;
         const rect = (structure.type === 'wire' || structure.type === 'defensiveTrench')
           ? {
               x: structure.x - structure.width / 2,
@@ -648,53 +661,46 @@
     }
 
     updateMissionStage() {
+      const map = this.mapConfig || {};
       if (this.missionStage === 1) {
-        const mgDown = this.fortresses.some((item) => item.type === 'machineGun' && !item.active);
-        const bunkerDamaged = this.fortresses.some((item) => item.type === 'bunker' && item.health < item.maxHealth * 0.82);
-        if (mgDown && bunkerDamaged && this.stats.smokeUsed) {
+        const targetIds = Array.isArray(map.stageOneTargetIds) ? map.stageOneTargetIds : [];
+        const targetsSuppressed = targetIds.length === 0 || targetIds.every((id) => {
+          const target = this.fortresses.find((item) => item.id === id);
+          return !target || !target.active || target.health < target.maxHealth * 0.72;
+        });
+        if (targetsSuppressed) {
           this.missionStage = 2;
-          this.log('Hoàn thành chế áp hỏa lực. Chuyển sang tiếp cận cứ điểm.', 'important');
+          this.log('Đã chế áp các hỏa điểm vòng ngoài. Chuyển sang tiếp cận mục tiêu.', 'important');
         }
       } else if (this.missionStage === 2) {
-        const forward = this.squads.some((unit) => unit.type === 'infantry' && unit.state !== 'dead' && unit.x > 1540);
-        if (this.stats.trenchesCompleted >= 3 && forward && this.stats.fenceBreached) {
+        const threshold = Number(map.assaultThreshold) || 1540;
+        const requiredTrenches = Math.max(0, Number(map.requiredTrenches) || 0);
+        const forward = this.squads.some((unit) => unit.type === 'infantry' && unit.state !== 'dead' && unit.x > threshold);
+        const fenceReady = !map.requiresFence || this.fortresses.some((item) => item.type === 'wire' && !item.active);
+        if (this.stats.trenchesCompleted >= requiredTrenches && forward && fenceReady) {
           this.missionStage = 3;
-          this.log('Đã mở cửa đột phá. Mục tiêu tiếp theo: chiếm trung tâm cứ điểm.', 'important');
+          this.log('Đã mở hướng tiếp cận. Mục tiêu tiếp theo: vô hiệu hóa mục tiêu cuối và chiếm cờ.', 'important');
         }
       }
     }
 
-    updateFlagHold() {
-      const commandBunker = this.fortresses.find((item) => item.id === 'command-bunker');
-      const occupier = this.squads.some((unit) => unit.type === 'infantry' && unit.state !== 'dead' && Math.abs(unit.x - (this.mapConfig.flagX || 2360)) < 70);
-      const defenses = this.getActiveMajorDefenses();
-      if (occupier && commandBunker && !commandBunker.active && this.stats.fenceBreached && defenses <= 2) {
-        this.flagHoldTurns += 1;
-        this.log(`Bộ binh giữ điểm cắm cờ: ${this.flagHoldTurns}/${NS.Constants.FLAG_HOLD_TURNS} lượt.`, 'important');
-      } else if (!occupier) {
-        this.flagHoldTurns = 0;
-      }
+    getPrimaryObjective() {
+      const objectiveId = this.mapConfig && this.mapConfig.primaryObjectiveId;
+      return objectiveId ? this.fortresses.find((item) => item.id === objectiveId) : null;
     }
 
     getActiveMajorDefenses() {
-      return this.fortresses.filter((item) => ['machineGun', 'mortar', 'artillery'].includes(item.type) && item.active).length;
+      return this.fortresses.filter((item) => ['bunker', 'machineGun', 'mortar', 'artillery', 'enemyTank'].includes(item.type) && item.active).length;
     }
 
     checkVictory() {
       if (this.result) return;
-      const commandBunker = this.fortresses.find((item) => item.id === 'command-bunker');
+      const objective = this.getPrimaryObjective();
       const flagX = this.mapConfig.flagX || 2360;
       const occupier = this.squads.some((unit) => unit.type === 'infantry' && unit.state !== 'dead' && Math.abs(unit.x - flagX) < 72);
-      let missionRequirementMet = true;
-      if (this.currentMissionId === 'muong-thanh-airfield') {
-        const aircraft = this.fortresses.find((item) => item.type === 'aircraft');
-        missionRequirementMet = Boolean(aircraft && !aircraft.active);
-      } else if (this.currentMissionId === 'muong-thanh-hq') {
-        const enemyTank = this.fortresses.find((item) => item.type === 'enemyTank');
-        missionRequirementMet = Boolean(enemyTank && !enemyTank.active);
-      }
-      if (commandBunker && !commandBunker.active && occupier && missionRequirementMet) {
-        this.finishGame(true, `Đã vô hiệu hóa mục tiêu trọng yếu và chiếm thành công ${this.missionConfig.name}.`);
+      const fenceReady = !this.mapConfig.requiresFence || this.fortresses.some((item) => item.type === 'wire' && !item.active);
+      if (objective && !objective.active && occupier && fenceReady) {
+        this.finishGame(true, `Bộ binh đã chiếm điểm mục tiêu. ${this.missionConfig.name} được giải phóng ngay, không cần giữ thêm lượt.`);
       }
     }
 
@@ -750,7 +756,7 @@
         'Xe tăng còn hoạt động': tanks,
         'Công trình vô hiệu hóa': this.stats.structuresDestroyed,
         'Độ chính xác pháo binh': `${accuracy}%`,
-        'Đoạn hào hoàn thành': this.stats.trenchesCompleted,
+        'Hầm trú ẩn hoàn thành': this.stats.trenchesCompleted,
         'Điểm tổng kết': score,
         'Thưởng Việt Nam đồng': this.lastReward > 0 ? `+${this.lastReward.toLocaleString('vi-VN')} VNĐ` : '0 VNĐ',
         'Số dư hiện tại': this.profile ? `${this.profile.coins.toLocaleString('vi-VN')} VNĐ` : '—'
@@ -844,10 +850,11 @@
           </div>`;
         }
         const morale = Math.round(unit.morale);
-        const digInfo = unit.activeTrench && !unit.activeTrench.completed ? ` · Đào ${Math.round(unit.activeTrench.progress)}%` : '';
+        const stateLabels = { idle: 'Sẵn sàng', moving: 'Di chuyển', digging: 'Đào hầm', hiding: 'Ẩn nấp', sheltered: 'Trong hầm', attacking: 'Tấn công', charging: 'Xung phong', retreating: 'Rút lui', capturing: 'Chiếm cứ điểm', dead: 'Mất sức chiến đấu' };
+        const digInfo = unit.activeTrench && !unit.activeTrench.completed ? ` · ${Math.round(unit.activeTrench.progress)}%` : '';
         return `<div class="unit-row ${unit.selected ? 'is-selected' : ''}" data-unit-id="${unit.id}">
           <div class="unit-row__line"><strong>${unit.name}</strong><span>${unit.soldiers}/${unit.maxSoldiers}</span></div>
-          <div class="unit-row__line"><span>${unit.state}${digInfo}</span><span>HP ${health}%</span></div>
+          <div class="unit-row__line"><span>${stateLabels[unit.state] || unit.state}${digInfo}</span><span>HP ${health}%</span></div>
           <div class="bar"><span style="width:${health}%"></span></div>
           <div class="bar bar--morale"><span style="width:${morale}%"></span></div>
         </div>`;
@@ -882,7 +889,6 @@
           fortresses: this.fortresses.map((item) => item.serialize()),
           trenches: this.trenches.map((trench) => trench.serialize()),
           terrain: this.terrain.serialize(),
-          flagHoldTurns: this.flagHoldTurns,
           missionStage: this.missionStage,
           stats: this.stats,
           shotsFired: this.shotsFired,
@@ -930,18 +936,30 @@
         this.terrain.restore(data.terrain);
         this.squads.forEach((unit) => {
           unit.y = this.terrain.getHeight(unit.x) - (unit.type === 'tank' ? 12 : 10);
-          if (unit.type === 'infantry' && unit.savedActiveTrenchId) {
-            const trench = this.trenches.find((item) => item.id === unit.savedActiveTrenchId);
-            if (trench && !trench.completed) {
-              unit.activeTrench = trench;
-              unit.digStandX = Number.isFinite(unit.digStandX)
-                ? unit.digStandX
-                : NS.clamp(trench.startX - trench.direction * NS.Constants.TRENCH_WORK_DISTANCE, 20, NS.Constants.WORLD_WIDTH - 20);
-              unit.state = 'digging';
+          if (unit.type === 'infantry') {
+            if (unit.savedActiveTrenchId) {
+              const dugout = this.trenches.find((item) => item.id === unit.savedActiveTrenchId);
+              if (dugout && !dugout.completed) {
+                unit.activeTrench = dugout;
+                const index = Math.max(0, dugout.assignedUnitIds.indexOf(unit.id));
+                const side = index % 2 === 0 ? -1 : 1;
+                unit.digStandX = Number.isFinite(unit.digStandX)
+                  ? unit.digStandX
+                  : NS.clamp(dugout.centerX + side * (dugout.width * 0.5 + 18), 20, NS.Constants.WORLD_WIDTH - 20);
+                unit.state = 'digging';
+              }
+            } else if (unit.savedTrenchId) {
+              const dugout = this.trenches.find((item) => item.id === unit.savedTrenchId && item.completed && item.durability > 15);
+              if (dugout && dugout.addOccupant(unit.id)) {
+                unit.inTrench = true;
+                unit.trenchId = dugout.id;
+                unit.state = 'sheltered';
+                unit.x = dugout.getSlotX(unit.id);
+                unit.y = dugout.getFloorY(this.terrain) - 8;
+              }
             }
           }
         });
-        this.flagHoldTurns = Math.max(0, Number(data.flagHoldTurns) || 0);
         this.missionStage = NS.clamp(Number(data.missionStage) || 1, 1, 3);
         this.stats = Object.assign(this.stats, data.stats || {});
         this.shotsFired = Math.max(0, Number(data.shotsFired) || 0);

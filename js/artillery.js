@@ -130,7 +130,9 @@
         return;
       }
 
-      const structure = game.getStructureAtPoint(this.x, this.y);
+      // Đạn địch không va chạm với công sự cùng phe trên đường bay.
+      // Điểm rơi an toàn đã được EnemyAI chọn trước khi khai hỏa.
+      const structure = this.owner === 'enemy' ? null : game.getStructureAtPoint(this.x, this.y);
       const canCollide = this.age >= this.collisionGrace;
       if (structure && canCollide && structure.id !== this.sourceId) {
         this.explode(game, this.x, this.y);
