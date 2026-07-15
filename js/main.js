@@ -11,6 +11,7 @@
     settings: document.getElementById('settings-screen'),
     game: document.getElementById('game-screen'),
     help: document.getElementById('help-screen'),
+    authors: document.getElementById('authors-screen'),
     quiz: document.getElementById('quiz-screen'),
     pause: document.getElementById('pause-screen'),
     result: document.getElementById('result-screen')
@@ -39,7 +40,7 @@
 
   function setBaseScreen(name) {
     baseNames.forEach((key) => screens[key].classList.toggle('screen--active', key === name));
-    ['help', 'quiz', 'pause', 'result'].forEach((key) => screens[key].classList.remove('screen--active'));
+    ['help', 'authors', 'quiz', 'pause', 'result'].forEach((key) => screens[key].classList.remove('screen--active'));
     if (name !== 'game') {
       game.paused = false;
       if (game.running) game.running = false;
@@ -51,9 +52,22 @@
     document.querySelectorAll('.wallet-mirror').forEach((node) => { node.textContent = formatCoins(profile.coins); });
   }
 
+  function refreshHomeDashboard() {
+    const completedCount = profile.completedMissions.length;
+    const totalMissions = NS.CampaignMissions.length;
+    const progress = totalMissions ? Math.round(completedCount / totalMissions * 100) : 0;
+    const completedNode = document.getElementById('home-star-value');
+    const progressNode = document.getElementById('home-progress-value');
+    const missionNode = document.getElementById('home-selected-mission');
+    if (completedNode) completedNode.textContent = `${completedCount}/${totalMissions}`;
+    if (progressNode) progressNode.textContent = `${progress}%`;
+    if (missionNode) missionNode.textContent = 'Độc lập - Tự do - Hạnh phúc';
+  }
+
   function refreshProfile() {
     profile = NS.Campaign.loadProfile();
     refreshWallet();
+    refreshHomeDashboard();
     renderMissionList();
     renderShop();
     renderEquipment();
@@ -161,13 +175,75 @@
     ctx.fillStyle = '#ffdf3d'; ctx.font = '16px serif'; ctx.fillText('★', flagX + 18, flagY - 31);
   }
 
+  function renderShopIcon(item) {
+    const start = '<svg viewBox="0 0 80 80" aria-hidden="true" focusable="false" class="shop-card__icon-svg">';
+    const end = '</svg>';
+    const icons = {
+      'tank-count': `${start}
+        <rect x="14" y="37" width="42" height="16" rx="4" fill="#51603c"/>
+        <rect x="28" y="30" width="18" height="10" rx="3" fill="#69794f"/>
+        <rect x="45" y="33" width="20" height="4" rx="2" fill="#d8b44a"/>
+        <circle cx="24" cy="56" r="6" fill="#3a2d1f"/><circle cx="46" cy="56" r="6" fill="#3a2d1f"/>
+        <path d="M12 26h14l6 6H18z" fill="#8f2c1a" opacity=".8"/>
+      ${end}`,
+      'tank-ammo': `${start}
+        <rect x="25" y="14" width="18" height="34" rx="8" fill="#d0a23d"/>
+        <path d="M25 24h18v16H25z" fill="#6f130d" opacity=".28"/>
+        <path d="M29 8h10l4 7H25z" fill="#f0d17a"/>
+        <rect x="31" y="48" width="6" height="17" rx="2" fill="#6a140d"/>
+        <rect x="42" y="22" width="9" height="29" rx="4" fill="#e2bc5d"/>
+      ${end}`,
+      'infantry-size': `${start}
+        <circle cx="26" cy="24" r="7" fill="#43513a"/>
+        <circle cx="40" cy="20" r="8" fill="#59684d"/>
+        <circle cx="55" cy="25" r="7" fill="#43513a"/>
+        <rect x="21" y="32" width="10" height="18" rx="4" fill="#43513a"/>
+        <rect x="34" y="29" width="12" height="22" rx="4" fill="#59684d"/>
+        <rect x="50" y="33" width="10" height="17" rx="4" fill="#43513a"/>
+        <path d="M18 57h46" stroke="#d8b44a" stroke-width="4" stroke-linecap="round"/>
+      ${end}`,
+      'ammo-he': `${start}
+        <rect x="24" y="14" width="20" height="42" rx="10" fill="#dc6d33"/>
+        <path d="M24 28h20v16H24z" fill="#7f170f" opacity=".25"/>
+        <path d="M28 9h12l4 8H24z" fill="#ffd38e"/>
+        <path d="M48 45l10 10" stroke="#7f170f" stroke-width="4" stroke-linecap="round"/>
+        <circle cx="60" cy="58" r="6" fill="#ffcf65"/>
+      ${end}`,
+      'ammo-ap': `${start}
+        <rect x="26" y="12" width="16" height="46" rx="8" fill="#c4a44d"/>
+        <path d="M30 7h8l5 9H25z" fill="#fff0ad"/>
+        <path d="M34 58V70" stroke="#6f140d" stroke-width="5" stroke-linecap="round"/>
+        <path d="M47 34h12" stroke="#6f140d" stroke-width="4" stroke-linecap="round"/>
+      ${end}`,
+      'ammo-smoke': `${start}
+        <rect x="24" y="42" width="32" height="14" rx="7" fill="#8f958d"/>
+        <circle cx="30" cy="29" r="8" fill="#d5d2ca"/>
+        <circle cx="40" cy="22" r="10" fill="#c3c0ba"/>
+        <circle cx="51" cy="30" r="9" fill="#ddd9d1"/>
+      ${end}`,
+      'ammo-breach': `${start}
+        <rect x="16" y="42" width="38" height="12" rx="6" fill="#cb9733"/>
+        <path d="M54 48h10" stroke="#6d130d" stroke-width="4" stroke-linecap="round"/>
+        <path d="M61 22l-9 10-7-7-17 20" fill="none" stroke="#f2d36d" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      ${end}`,
+      'ammo-cluster': `${start}
+        <rect x="32" y="12" width="14" height="36" rx="7" fill="#c65b45"/>
+        <path d="M35 7h8l4 7H31z" fill="#ffd0a7"/>
+        <circle cx="23" cy="54" r="7" fill="#e79273"/>
+        <circle cx="38" cy="59" r="8" fill="#d96d56"/>
+        <circle cx="54" cy="53" r="7" fill="#e79273"/>
+      ${end}`
+    };
+    return icons[item.id] || `${start}<circle cx="40" cy="40" r="18" fill="#d9b44f"/>${end}`;
+  }
+
   function renderShop() {
     const container = document.getElementById('shop-list');
     container.innerHTML = NS.ShopItems.map((item) => {
       const state = NS.Campaign.getItemState(profile, item);
       const price = NS.Campaign.getItemPrice(profile, item);
       return `<article class="shop-card ${state.owned ? 'is-owned' : ''}">
-        <div class="shop-card__icon">${item.icon}</div><h3>${item.name}</h3><p>${item.description}</p>
+        <div class="shop-card__icon shop-card__icon--${item.id}">${renderShopIcon(item)}</div><h3>${item.name}</h3><p>${item.description}</p>
         <strong class="shop-card__level">Cấp ${state.level}/${state.max} · ${NS.Campaign.getItemValue(profile, item)}</strong>
         <button class="button ${state.owned ? '' : 'button--primary'} shop-buy-button" data-item-id="${item.id}" ${state.owned ? 'disabled' : ''}>
           ${state.owned ? 'Đã đạt tối đa' : `<span class="vnd-coin vnd-coin--tiny">★</span> ${formatCoins(price)} xu`}
@@ -300,6 +376,10 @@
     else { screens.help.classList.remove('screen--active'); if (helpReturn === 'game') game.paused = false; }
   }
 
+  function showAuthors(show) {
+    screens.authors.classList.toggle('screen--active', Boolean(show));
+  }
+
   function showPause(show) { screens.pause.classList.toggle('screen--active', Boolean(show)); }
 
   function showResult(victory, reason, stats) {
@@ -312,7 +392,19 @@
 
   function updateSoundButtons(enabled) { document.getElementById('sound-button').textContent = enabled ? '🔊' : '🔇'; }
   function hasSave() { try { return Boolean(localStorage.getItem(NS.Constants.STORAGE_KEY)); } catch (error) { return false; } }
-  function refreshContinueButton() { document.getElementById('continue-button').hidden = !hasSave(); }
+  function continueSavedGame() {
+    if (game.loadGame()) {
+      selectedMissionId = game.currentMissionId;
+      selectedLevel = game.difficulty;
+      setBaseScreen('game');
+      game.start();
+    }
+  }
+  function refreshContinueButton() {
+    const canContinue = hasSave();
+    const continueMenuButton = document.getElementById('home-continue-menu-button');
+    if (continueMenuButton) continueMenuButton.disabled = !canContinue;
+  }
 
   function startTutorialIfNeeded() {
     try { if (localStorage.getItem(NS.Constants.TUTORIAL_KEY)) return; } catch (error) { return; }
@@ -339,6 +431,14 @@
   document.getElementById('equipment-menu-button').addEventListener('click', () => { game.audio.resume(); setBaseScreen('equipment'); });
   document.getElementById('history-menu-button').addEventListener('click', () => setBaseScreen('history'));
   document.getElementById('settings-menu-button').addEventListener('click', () => { game.audio.resume(); refreshSettings(); setBaseScreen('settings'); });
+  document.getElementById('home-continue-menu-button').addEventListener('click', () => { game.audio.resume(); continueSavedGame(); });
+  document.getElementById('authors-button').addEventListener('click', () => showAuthors(true));
+  document.querySelectorAll('[data-home-screen]').forEach((button) => button.addEventListener('click', () => {
+    const target = button.dataset.homeScreen;
+    if (!target || !screens[target]) return;
+    game.audio.resume();
+    setBaseScreen(target);
+  }));
   document.querySelectorAll('.back-home-button').forEach((button) => button.addEventListener('click', () => { refreshProfile(); setBaseScreen('menu'); }));
   document.getElementById('back-missions-button').addEventListener('click', () => setBaseScreen('missions'));
   document.getElementById('start-mission-button').addEventListener('click', startMission);
@@ -351,6 +451,7 @@
   document.getElementById('help-button').addEventListener('click', () => showHelp(true, false));
   document.getElementById('game-help-button').addEventListener('click', () => showHelp(true, true));
   document.getElementById('close-help-button').addEventListener('click', () => showHelp(false));
+  document.getElementById('close-authors-button').addEventListener('click', () => showAuthors(false));
   document.getElementById('clear-history-button').addEventListener('click', () => { profile.history = []; profile = NS.Campaign.saveProfile(profile); renderHistory(); });
   document.getElementById('music-enabled-input').addEventListener('change', (event) => { game.audio.setMusicEnabled(event.target.checked); game.saveSettings(); });
   document.getElementById('sfx-enabled-input').addEventListener('change', (event) => { game.audio.setSfxEnabled(event.target.checked); game.soundEnabled = event.target.checked; updateSoundButtons(event.target.checked); game.saveSettings(); });
@@ -377,16 +478,12 @@
   document.getElementById('save-button').addEventListener('click', () => game.saveGame(true));
   document.getElementById('sound-button').addEventListener('click', () => game.toggleSound());
   document.querySelectorAll('.command-button').forEach((button) => button.addEventListener('click', () => game.setCommandMode(button.dataset.command)));
-  document.getElementById('unit-list').addEventListener('click', (event) => { const row = event.target.closest('[data-unit-id]'); if (row) game.selectUnitById(row.dataset.unitId); });
-
   // Pause, kết quả, tiếp tục
   document.getElementById('resume-button').addEventListener('click', () => game.togglePause(false));
   document.getElementById('restart-button').addEventListener('click', () => { screens.pause.classList.remove('screen--active'); game.resetGame(); game.start(); });
   document.getElementById('back-menu-button').addEventListener('click', () => { game.running = false; screens.pause.classList.remove('screen--active'); refreshProfile(); setBaseScreen('menu'); });
   document.getElementById('result-restart-button').addEventListener('click', () => { screens.result.classList.remove('screen--active'); game.resetGame(); setBaseScreen('game'); game.start(); });
   document.getElementById('result-menu-button').addEventListener('click', () => { screens.result.classList.remove('screen--active'); refreshProfile(); setBaseScreen('menu'); });
-  document.getElementById('continue-button').addEventListener('click', () => { if (game.loadGame()) { selectedMissionId = game.currentMissionId; selectedLevel = game.difficulty; setBaseScreen('game'); game.start(); } });
-
   // Tutorial
   document.getElementById('tutorial-next-button').addEventListener('click', () => { tutorialIndex += 1; renderTutorialStep(); });
   document.getElementById('tutorial-skip-button').addEventListener('click', completeTutorial);

@@ -10,30 +10,45 @@
 <body>
   <div id="app">
     <section id="main-menu" class="screen screen--active campaign-home">
-      <header class="campaign-header">
-        <div class="flag-brand">
-          <span class="flag-brand__star">★</span>
-          <div><strong>ĐƯỜNG TỚI CHIẾN THẮNG</strong><small>Game bắn pháo – điều binh chiến thuật 2D</small></div>
+      <header class="campaign-header campaign-header--poster">
+        <div class="flag-brand flag-brand--poster">
+          <div class="flag-brand__medal"><span class="flag-brand__star">★</span></div>
+          <div>
+            <small id="home-selected-mission">Độc lập - Tự do - Hạnh phúc</small>
+          </div>
         </div>
-        <div class="wallet" aria-label="Số xu hiện có"><span class="vnd-coin">★</span><strong id="wallet-value">0</strong><span>xu</span></div>
+        <div class="campaign-home__top-controls">
+          <div class="wallet wallet--poster" aria-label="Số xu hiện có"><span class="vnd-coin">★</span><strong id="wallet-value">0</strong><span>xu</span></div>
+          <div class="home-stat-card"><span>Chiến công</span><strong id="home-star-value">0/5</strong></div>
+          <div class="home-stat-card home-stat-card--progress"><span>Tiến độ</span><strong id="home-progress-value">0%</strong></div>
+          <button id="settings-menu-button" class="home-icon-button" aria-label="Mở cài đặt">⚙</button>
+        </div>
       </header>
-      <div class="hero-panel">
-        <p class="eyebrow">CHIẾN DỊCH ĐIỆN BIÊN PHỦ</p>
-        <h1>Đường tới chiến thắng</h1>
-        <p class="subtitle">Chỉ huy pháo binh, bộ binh, công binh và lực lượng yểm trợ để vượt chướng ngại, phá công sự và chiếm các mục tiêu của chiến dịch.</p>
-        <div class="main-menu-grid">
-          <button id="play-menu-button" class="home-action home-action--primary"><span>▶</span><strong>Chơi</strong><small>Chọn cứ điểm và level</small></button>
-          <button id="shop-menu-button" class="home-action"><span>◆</span><strong>Cửa hàng</strong><small>Mua quân và đạn</small></button>
-          <button id="equipment-menu-button" class="home-action"><span>⚙</span><strong>Khí tài</strong><small>Quản lý biên chế</small></button>
-          <button id="history-menu-button" class="home-action"><span>≡</span><strong>Lịch sử chơi</strong><small>Kết quả các trận</small></button>
-          <button id="help-button" class="home-action"><span>?</span><strong>Hướng dẫn</strong><small>Luật chơi và điều khiển</small></button>
-          <button id="settings-menu-button" class="home-action"><span>♫</span><strong>Cài đặt</strong><small>Nhạc nền và hiệu ứng</small></button>
+      <div class="campaign-home__layout">
+        <aside class="home-rail home-rail--left" aria-label="Menu trái">
+          <button id="home-continue-menu-button" class="home-rail-card"><span class="home-rail-card__icon">✦</span><strong>Tiếp tục trận</strong></button>
+          <button id="history-menu-button" class="home-rail-card"><span class="home-rail-card__icon">▤</span><strong>Lịch sử chơi</strong></button>
+          <button id="authors-button" class="home-rail-card"><span class="home-rail-card__icon">✎</span><strong>Tác giả</strong></button>
+          <button id="help-button" class="home-rail-card"><span class="home-rail-card__icon">?</span><strong>Hướng dẫn</strong></button>
+        </aside>
+
+        <div class="hero-panel hero-panel--poster">
+          <h1>Đường tới chiến thắng</h1>
+          <div class="campaign-home__hero-mark">
+            <div class="campaign-home__star"></div>
+          </div>
         </div>
-        <div class="menu-settings-row">
-          <button id="continue-button" class="button button--primary" hidden>Tiếp tục trận đang lưu</button>
-          <span class="menu-settings-note">Game 2D chiến thuật</span>
+
+        <aside class="home-rail home-rail--right" aria-label="Menu phải">
+          <button id="play-menu-button" class="home-rail-card home-rail-card--play"><span class="home-rail-card__icon">★</span><strong>Chơi</strong></button>
+          <button id="shop-menu-button" class="home-rail-card"><span class="home-rail-card__icon">✸</span><strong>Cửa hàng</strong></button>
+          <button id="equipment-menu-button" class="home-rail-card"><span class="home-rail-card__icon">▣</span><strong>Khí tài</strong></button>
+        </aside>
+      </div>
+
+      <div class="campaign-home__bottom">
+        <div class="campaign-home__mode-strip">
         </div>
-        <p class="historical-note">Bản đồ và khí tài được minh họa theo ảnh tư liệu ở mức giản lược. Xe tăng yểm trợ của người chơi là cơ chế giả lập gameplay, không phải biên chế lịch sử của quân ta tại Điện Biên Phủ năm 1954.</p>
       </div>
     </section>
 
@@ -125,7 +140,6 @@
             <button class="command-button" data-command="charge">Xung phong</button><button class="command-button" data-command="retreat">Rút lui (R)</button>
           </div>
         </div>
-        <div id="unit-panel" class="hud-panel unit-panel"><div class="panel-title">Đơn vị</div><div id="unit-list"></div></div>
         <div id="resource-panel" class="hud-panel resource-panel">
           <div>Điểm hành động: <strong id="action-points-value">0</strong></div><div>Điểm công binh: <strong id="engineering-points-value">160</strong></div>
           <div>Điểm chỉ huy: <strong id="command-points-value">60</strong></div><div>Quân số bộ binh: <strong id="troop-count-value">0</strong></div>
@@ -150,6 +164,18 @@
         </div>
         <div id="mission-rules-list" class="mission-rules-list"></div>
         <button id="close-help-button" class="button button--primary">Đã hiểu</button>
+      </div>
+    </section>
+
+    <section id="authors-screen" class="screen overlay-screen">
+      <div class="modal-card authors-card">
+        <h2>Tác giả game</h2>
+        <div class="authors-card__content">
+          <p><strong>1.</strong> Hoàng Văn Lập</p>
+          <p><strong>2.</strong> Nguyễn Đức Hiển</p>
+          <p><strong>3.</strong> Nguyễn Quang Khải</p>
+        </div>
+        <button id="close-authors-button" class="button button--primary">Đóng</button>
       </div>
     </section>
 

@@ -834,31 +834,7 @@
         button.classList.toggle('is-active', button.dataset.command === this.commandMode);
       });
       document.getElementById('sound-button').textContent = this.soundEnabled ? '🔊' : '🔇';
-      this.renderUnitList();
       this.renderBattleLog();
-    }
-
-    renderUnitList() {
-      const list = document.getElementById('unit-list');
-      list.innerHTML = this.squads.map((unit) => {
-        const health = Math.round(unit.health / unit.maxHealth * 100);
-        if (unit.type === 'tank') {
-          return `<div class="unit-row ${unit.selected ? 'is-selected' : ''}" data-unit-id="${unit.id}">
-            <div class="unit-row__line"><strong>${unit.name}</strong><span>1 xe</span></div>
-            <div class="unit-row__line"><span>${unit.state}</span><span>HP ${health}% · Đạn ${unit.shells}/${unit.maxShells}</span></div>
-            <div class="bar"><span style="width:${health}%"></span></div>
-          </div>`;
-        }
-        const morale = Math.round(unit.morale);
-        const stateLabels = { idle: 'Sẵn sàng', moving: 'Di chuyển', digging: 'Đào hầm', hiding: 'Ẩn nấp', sheltered: 'Trong hầm', attacking: 'Tấn công', charging: 'Xung phong', retreating: 'Rút lui', capturing: 'Chiếm cứ điểm', dead: 'Mất sức chiến đấu' };
-        const digInfo = unit.activeTrench && !unit.activeTrench.completed ? ` · ${Math.round(unit.activeTrench.progress)}%` : '';
-        return `<div class="unit-row ${unit.selected ? 'is-selected' : ''}" data-unit-id="${unit.id}">
-          <div class="unit-row__line"><strong>${unit.name}</strong><span>${unit.soldiers}/${unit.maxSoldiers}</span></div>
-          <div class="unit-row__line"><span>${stateLabels[unit.state] || unit.state}${digInfo}</span><span>HP ${health}%</span></div>
-          <div class="bar"><span style="width:${health}%"></span></div>
-          <div class="bar bar--morale"><span style="width:${morale}%"></span></div>
-        </div>`;
-      }).join('');
     }
 
     log(message, type) {

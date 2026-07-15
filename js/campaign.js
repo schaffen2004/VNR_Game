@@ -43,14 +43,14 @@
   ]);
 
   NS.ShopItems = Object.freeze([
-    Object.freeze({ id: 'tank-count', category: 'tank', name: 'Số xe tăng yểm trợ', icon: '▰', basePrice: 18000, maxLevel: 2, unit: 'xe', description: 'Mỗi cấp mở thêm 1 xe tăng yểm trợ; tối đa 3 xe.' }),
-    Object.freeze({ id: 'tank-ammo', category: 'tank', name: 'Cơ số đạn xe tăng', icon: '◆', basePrice: 7000, maxLevel: 5, unit: 'viên/xe', description: 'Mỗi xe có tối thiểu 10 viên; mỗi cấp tăng thêm 1 viên, tối đa 15 viên/xe.' }),
-    Object.freeze({ id: 'infantry-size', category: 'infantry', name: 'Quân số mỗi đại đội', icon: '♟', basePrice: 6000, maxLevel: 8, unit: 'người/đơn vị', description: 'Mỗi cấp tăng 1 bộ binh cho mỗi đơn vị; từ 10 lên tối đa 18.' }),
+    Object.freeze({ id: 'tank-count', category: 'tank', name: 'Số xe tăng yểm trợ', icon: 'XE', basePrice: 18000, maxLevel: 2, unit: 'xe', description: 'Mỗi cấp mở thêm 1 xe tăng yểm trợ; tối đa 3 xe.' }),
+    Object.freeze({ id: 'tank-ammo', category: 'tank', name: 'Cơ số đạn xe tăng', icon: 'ĐN', basePrice: 7000, maxLevel: 5, unit: 'viên/xe', description: 'Mỗi xe có tối thiểu 10 viên; mỗi cấp tăng thêm 1 viên, tối đa 15 viên/xe.' }),
+    Object.freeze({ id: 'infantry-size', category: 'infantry', name: 'Quân số mỗi đại đội', icon: 'BB', basePrice: 6000, maxLevel: 8, unit: 'người/đơn vị', description: 'Mỗi cấp tăng 1 bộ binh cho mỗi đơn vị; từ 10 lên tối đa 18.' }),
     Object.freeze({ id: 'ammo-he', category: 'artillery', ammo: 'he', name: 'Cơ số đạn nổ mạnh', icon: 'HE', basePrice: 4500, maxLevel: 5, description: 'Mỗi cấp tăng 2 viên đạn nổ mạnh.' }),
     Object.freeze({ id: 'ammo-ap', category: 'artillery', ammo: 'ap', name: 'Cơ số đạn xuyên phá', icon: 'AP', basePrice: 5200, maxLevel: 5, description: 'Mỗi cấp tăng 2 viên đạn xuyên phá.' }),
-    Object.freeze({ id: 'ammo-smoke', category: 'artillery', ammo: 'smoke', name: 'Cơ số đạn khói', icon: 'SMK', basePrice: 4000, maxLevel: 5, description: 'Mỗi cấp tăng 2 viên đạn khói.' }),
-    Object.freeze({ id: 'ammo-breach', category: 'artillery', ammo: 'breach', name: 'Cơ số đạn phá rào', icon: 'BR', basePrice: 4800, maxLevel: 5, description: 'Mỗi cấp tăng 2 viên đạn phá hàng rào.' }),
-    Object.freeze({ id: 'ammo-cluster', category: 'artillery', ammo: 'cluster', name: 'Cơ số đạn chùm', icon: 'CL', basePrice: 6000, maxLevel: 5, description: 'Mỗi cấp tăng 2 viên đạn chùm.' })
+    Object.freeze({ id: 'ammo-smoke', category: 'artillery', ammo: 'smoke', name: 'Cơ số đạn khói', icon: 'KH', basePrice: 4000, maxLevel: 5, description: 'Mỗi cấp tăng 2 viên đạn khói.' }),
+    Object.freeze({ id: 'ammo-breach', category: 'artillery', ammo: 'breach', name: 'Cơ số đạn phá rào', icon: 'PR', basePrice: 4800, maxLevel: 5, description: 'Mỗi cấp tăng 2 viên đạn phá hàng rào.' }),
+    Object.freeze({ id: 'ammo-cluster', category: 'artillery', ammo: 'cluster', name: 'Cơ số đạn chùm', icon: 'CH', basePrice: 6000, maxLevel: 5, description: 'Mỗi cấp tăng 2 viên đạn chùm.' })
   ]);
 
   function defaultProfile() {
