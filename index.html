@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <meta name="theme-color" content="#b5121b">
   <title>Đường tới chiến thắng — Chiến dịch Điện Biên Phủ</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -26,7 +27,7 @@
       </header>
       <div class="campaign-home__layout">
         <aside class="home-rail home-rail--left" aria-label="Menu trái">
-          <button id="home-continue-menu-button" class="home-rail-card"><span class="home-rail-card__icon">✦</span><strong>Tiếp tục trận</strong></button>
+          <button id="play-menu-button" class="home-rail-card home-rail-card--play"><span class="home-rail-card__icon">★</span><strong>Chơi</strong></button>
           <button id="history-menu-button" class="home-rail-card"><span class="home-rail-card__icon">▤</span><strong>Lịch sử chơi</strong></button>
           <button id="authors-button" class="home-rail-card"><span class="home-rail-card__icon">✎</span><strong>Tác giả</strong></button>
           <button id="help-button" class="home-rail-card"><span class="home-rail-card__icon">?</span><strong>Hướng dẫn</strong></button>
@@ -40,7 +41,8 @@
         </div>
 
         <aside class="home-rail home-rail--right" aria-label="Menu phải">
-          <button id="play-menu-button" class="home-rail-card home-rail-card--play"><span class="home-rail-card__icon">★</span><strong>Chơi</strong></button>
+          <button id="home-continue-menu-button" class="home-rail-card"><span class="home-rail-card__icon">✦</span><strong>Tiếp tục trận</strong></button>
+          <button id="terrain-3d-button" class="home-rail-card"><span class="home-rail-card__icon home-rail-card__icon--map" aria-hidden="true"><span></span><span></span><span></span></span><strong>Map</strong></button>
           <button id="shop-menu-button" class="home-rail-card"><span class="home-rail-card__icon">✸</span><strong>Cửa hàng</strong></button>
           <button id="equipment-menu-button" class="home-rail-card"><span class="home-rail-card__icon">▣</span><strong>Khí tài</strong></button>
         </aside>
@@ -111,6 +113,43 @@
           <article class="settings-card"><h3>Nhạc nền</h3><label class="toggle-row"><input id="music-enabled-input" type="checkbox" checked><span>Bật nhạc nền chiến trường</span></label><label>Âm lượng <input id="music-volume-input" type="range" min="0" max="1" step="0.05" value="0.22"><output id="music-volume-value">22%</output></label></article>
           <article class="settings-card"><h3>Hiệu ứng game</h3><label class="toggle-row"><input id="sfx-enabled-input" type="checkbox" checked><span>Bật tiếng pháo, súng, nổ và đào hầm</span></label><label>Âm lượng <input id="sfx-volume-input" type="range" min="0" max="1" step="0.05" value="0.55"><output id="sfx-volume-value">55%</output></label><button id="test-sound-button" class="button">Nghe thử tiếng pháo</button></article>
           <article class="settings-card"><h3>Dữ liệu người chơi</h3><p>Đặt lại xu, cửa hàng và lịch sử nếu bạn muốn bắt đầu lại chiến dịch từ đầu.</p><button id="reset-progress-button" class="button button--danger">Đặt lại xu, cửa hàng và lịch sử</button></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="terrain-3d-screen" class="screen campaign-subscreen">
+      <div class="subscreen-shell terrain3d-shell">
+        <div class="subscreen-heading">
+          <button class="back-home-button button">← Trang chính</button>
+          <div>
+            <p class="eyebrow">BẢN ĐỒ TÁC CHIẾN</p>
+            <h2>Map</h2>
+          </div>
+          <div class="wallet"><span class="vnd-coin">★</span><strong class="wallet-mirror">0</strong><span>xu</span></div>
+        </div>
+        <div class="terrain3d-layout">
+          <article class="terrain3d-card terrain3d-card--viewer">
+            <div class="terrain3d-toolbar">
+              <button id="terrain-guide-button" class="button button--primary terrain-guide-button" type="button">Bật hướng dẫn viên</button>
+              <label>
+                <span>Cứ điểm</span>
+                <select id="terrain-3d-mission-select" class="select-control"></select>
+              </label>
+            </div>
+            <div id="terrain-3d-canvas" role="img" aria-label="Bản đồ Điện Biên và các cứ điểm trong game"></div>
+            <p id="terrain-guide-status" class="terrain3d-controls-note">Marker đỏ là cứ điểm đang chọn. Bật hướng dẫn viên để đi lần lượt qua từng địa điểm.</p>
+          </article>
+          <article class="terrain3d-card terrain3d-card--info">
+            <h3 id="terrain-3d-title">Đồi Him Lam</h3>
+            <div class="terrain3d-info-block">
+              <strong>Ngày mở màn</strong>
+              <p id="terrain-3d-period" class="briefing-period"></p>
+            </div>
+            <div class="terrain3d-info-block">
+              <strong>Diễn biến chính</strong>
+              <p id="terrain-3d-history" class="terrain3d-note terrain3d-note--compact"></p>
+            </div>
+          </article>
         </div>
       </div>
     </section>
@@ -197,6 +236,8 @@
   <script src="js/data.js"></script><script src="js/questions.js"></script><script src="js/campaign.js"></script>
   <script src="js/physics.js"></script><script src="js/effects.js"></script><script src="js/audio.js"></script>
   <script src="js/artillery.js"></script><script src="js/soldiers.js"></script><script src="js/trenches.js"></script><script src="js/fortress.js"></script><script src="js/enemyAI.js"></script>
-  <script src="js/renderer.js"></script><script src="js/input.js"></script><script src="js/game.js"></script><script src="js/main.js"></script>
+  <script src="js/renderer.js"></script><script src="js/input.js"></script><script src="js/game.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="js/main.js"></script>
 </body>
 </html>

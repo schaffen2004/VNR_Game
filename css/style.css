@@ -503,6 +503,76 @@ body { background: #2b0308; }
 .equipment-control output { text-align: center; color: var(--yellow-soft); font-weight: 900; }
 .equipment-ammo-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 10px; }
 .equipment-ammo-grid span { padding: 8px 4px; border-radius: 8px; text-align: center; color: #fff0b1; background: rgba(255,223,61,.08); font-size: 11px; }
+.terrain3d-layout { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(320px, .7fr); gap: 18px; margin-top: 18px; align-items: start; }
+.terrain3d-card { border: 1px solid rgba(255, 223, 61, .3); border-radius: 16px; background: rgba(90, 5, 19, .72); padding: 16px; }
+.terrain3d-card--viewer { display: grid; gap: 12px; }
+.terrain3d-toolbar { display: flex; justify-content: space-between; align-items: end; gap: 12px; flex-wrap: wrap; }
+.terrain3d-toolbar label { display: grid; gap: 6px; width: min(280px, 100%); color: #f6e4cc; font-weight: 800; }
+.terrain-guide-button { min-height: 44px; white-space: nowrap; }
+#terrain-guide-button.is-active { background: #f2bf52; color: #4c0a08; }
+#terrain-3d-canvas { display: block; width: 100%; height: 620px; border-radius: 14px; border: 1px solid rgba(255,255,255,.1); background: #4f0b0b; overflow: hidden; }
+.terrain-map-marker {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 246, 211, .92);
+  box-shadow: 0 0 0 4px rgba(107, 29, 19, .22);
+  background: #6b1d13;
+  color: #fff6d2;
+  font-size: 10px;
+  font-weight: 900;
+}
+.terrain-map-marker--active {
+  width: 22px;
+  height: 22px;
+  box-shadow: 0 0 0 6px rgba(228, 52, 42, .18);
+  background: #e4342a;
+}
+.terrain-map-marker--objective {
+  width: 14px;
+  height: 14px;
+  border-color: rgba(94, 38, 16, .8);
+  box-shadow: 0 0 0 3px rgba(255, 196, 87, .18);
+  background: #f2bf52;
+}
+.leaflet-container {
+  font: inherit;
+}
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: #5a0513;
+  color: #f6e4cc;
+}
+.leaflet-popup-content {
+  margin: 10px 12px;
+  line-height: 1.45;
+}
+.leaflet-control-attribution {
+  background: rgba(45, 7, 12, .72) !important;
+  color: #f6e4cc !important;
+}
+.leaflet-control-attribution a {
+  color: #ffe77d !important;
+}
+.leaflet-control-zoom a {
+  background: rgba(90, 5, 19, .92);
+  color: #fff0b1;
+  border-bottom-color: rgba(255,255,255,.08);
+}
+.leaflet-control-zoom a:hover {
+  background: #7d0f22;
+  color: #fff0b1;
+}
+.terrain3d-controls-note { margin: 0; color: #ead2bb; font-size: 12px; line-height: 1.45; }
+.terrain3d-card--info { display: grid; gap: 12px; }
+.terrain3d-card--info h3 { margin: 0; color: #ffe77d; font-size: 28px; }
+.terrain3d-info-block { display: grid; gap: 8px; }
+.terrain3d-info-block strong { color: #fff0b1; }
+.terrain3d-objectives { margin: 0; padding-left: 18px; color: #ead2bb; line-height: 1.5; }
+.terrain3d-note { margin: 0; padding: 12px; border-radius: 10px; color: #fff0bc; background: rgba(255, 223, 61, .1); border-left: 4px solid var(--yellow); line-height: 1.5; }
+.terrain3d-note--compact { padding: 10px 12px; font-size: 13px; }
 
 .quiz-meta { display: flex; justify-content: space-between; gap: 12px; color: var(--yellow-soft); }
 .quiz-explanation { min-height: 0; margin: 0; padding: 0; color: #f2d7b5; line-height: 1.5; }
@@ -510,7 +580,7 @@ body { background: #2b0308; }
 
 @media (max-width: 1050px) {
   .main-menu-grid { grid-template-columns: repeat(2, 1fr); }
-  .mission-detail-grid, .settings-grid { grid-template-columns: 1fr; }
+  .mission-detail-grid, .settings-grid, .terrain3d-layout { grid-template-columns: 1fr; }
   .mission-detail-shell { padding-bottom: 40px; }
 }
 
@@ -764,6 +834,26 @@ body { background: #2b0308; }
   box-shadow: inset 0 0 0 3px rgba(255, 222, 129, .16);
   transition: transform .22s ease, box-shadow .22s ease, filter .22s ease;
 }
+
+.home-rail-card__icon--map {
+  grid-auto-flow: column;
+  gap: 3px;
+}
+
+.home-rail-card__icon--map span {
+  display: block;
+  width: 9px;
+  height: 26px;
+  border-radius: 2px;
+  border: 1.5px solid rgba(255, 227, 154, .9);
+  background: linear-gradient(180deg, rgba(244, 200, 93, .95), rgba(175, 92, 27, .95));
+  transform-origin: center;
+  box-shadow: inset 0 0 0 1px rgba(117, 25, 8, .2);
+}
+
+.home-rail-card__icon--map span:nth-child(1) { transform: skewY(14deg); }
+.home-rail-card__icon--map span:nth-child(2) { transform: skewY(-10deg); }
+.home-rail-card__icon--map span:nth-child(3) { transform: skewY(14deg); }
 
 .home-rail-card:hover {
   transform: translateY(-8px) scale(1.03);

@@ -9,6 +9,7 @@
     equipment: document.getElementById('equipment-screen'),
     history: document.getElementById('history-screen'),
     settings: document.getElementById('settings-screen'),
+    terrain3d: document.getElementById('terrain-3d-screen'),
     game: document.getElementById('game-screen'),
     help: document.getElementById('help-screen'),
     authors: document.getElementById('authors-screen'),
@@ -17,7 +18,7 @@
     result: document.getElementById('result-screen')
   };
 
-  const baseNames = ['menu', 'missions', 'detail', 'shop', 'equipment', 'history', 'settings', 'game'];
+  const baseNames = ['menu', 'missions', 'detail', 'shop', 'equipment', 'history', 'settings', 'terrain3d', 'game'];
   const canvas = document.getElementById('game-canvas');
   const minimapCanvas = document.getElementById('minimap-canvas');
   const game = new NS.Game(canvas, minimapCanvas);
@@ -33,12 +34,197 @@
   let currentQuestion = null;
   let quizMultiplier = 1;
   let quizCorrect = true;
+  let terrain3DMissionId = selectedMissionId;
+  const terrainMapGeo = Object.freeze({
+    center: [21.3949, 103.0145],
+    defaultZoom: 13,
+    minZoom: 9,
+    maxZoom: 17,
+    provinceBounds: Object.freeze([
+      [20.95, 102.15],
+      [22.55, 103.55]
+    ]),
+    missions: Object.freeze({
+      'him-lam': Object.freeze({
+        lat: 21.4048, lng: 103.0238,
+        title: 'Đồi Him Lam',
+        objectiveOffsets: Object.freeze([
+          { lat: 0.0011, lng: -0.0012, label: 'Rào ngoài' },
+          { lat: 0.0003, lng: -0.0001, label: 'Lô cốt' },
+          { lat: -0.0007, lng: 0.0013, label: 'Pháo địch' }
+        ])
+      }),
+      'doc-lap': Object.freeze({
+        lat: 21.4172, lng: 103.0002,
+        title: 'Đồi Độc Lập',
+        objectiveOffsets: Object.freeze([
+          { lat: -0.0011, lng: 0.0012, label: 'Bãi mìn' },
+          { lat: -0.0002, lng: 0.0021, label: 'Lô cốt' },
+          { lat: 0.0008, lng: 0.003, label: 'Pháo địch' }
+        ])
+      }),
+      'c1': Object.freeze({
+        lat: 21.3897, lng: 103.0247,
+        title: 'Đồi C1',
+        objectiveOffsets: Object.freeze([
+          { lat: 0.0009, lng: -0.0016, label: 'Rào lớp 1' },
+          { lat: 0.0001, lng: -0.0004, label: 'Lô cốt' },
+          { lat: -0.0008, lng: 0.0011, label: 'Pháo địch' }
+        ])
+      }),
+      'muong-thanh-airfield': Object.freeze({
+        lat: 21.3972, lng: 103.0078,
+        title: 'Sân bay Mường Thanh',
+        objectiveOffsets: Object.freeze([
+          { lat: 0.0005, lng: -0.0028, label: 'Mép đường băng' },
+          { lat: -0.0002, lng: -0.0006, label: 'Xe tăng địch' },
+          { lat: 0.0001, lng: 0.0024, label: 'Máy bay tiếp tế' }
+        ])
+      }),
+      'de-castries-hq': Object.freeze({
+        lat: 21.3951, lng: 103.0168,
+        title: 'Hầm De Castries',
+        objectiveOffsets: Object.freeze([
+          { lat: 0.0008, lng: -0.002, label: 'Cầu Mường Thanh' },
+          { lat: 0.0003, lng: -0.001, label: 'Phòng tuyến ngoài' },
+          { lat: -0.0002, lng: 0.001, label: 'Hầm chỉ huy' }
+        ])
+      })
+    })
+  });
+  let terrainMapInstance = null;
+  let terrainMissionMarkers = new Map();
+  let terrainObjectiveLayer = null;
+  let terrainGuideActive = false;
+  let terrainGuideTimer = 0;
+  let terrainGuideStepIndex = -1;
+  let terrainGuideFallbackDelay = 0;
+  let terrainGuideSessionToken = 0;
+  let terrainGuideAudio = null;
+
+  function clearTerrainGuideTimer() {
+    if (terrainGuideTimer) {
+      window.clearTimeout(terrainGuideTimer);
+      terrainGuideTimer = 0;
+    }
+  }
+
+  function stopTerrainGuideAudio() {
+    if (!terrainGuideAudio) return;
+    terrainGuideAudio.onended = null;
+    terrainGuideAudio.onerror = null;
+    terrainGuideAudio.onpause = null;
+    terrainGuideAudio.pause();
+    terrainGuideAudio = null;
+  }
+
+  function getTerrainGuideButton() {
+    return document.getElementById('terrain-guide-button');
+  }
+
+  function setTerrainGuideStatus(message) {
+    const status = document.getElementById('terrain-guide-status');
+    if (status) status.textContent = message;
+  }
+
+  function updateTerrainGuideButton() {
+    const button = getTerrainGuideButton();
+    if (!button) return;
+    button.classList.toggle('is-active', terrainGuideActive);
+    button.textContent = terrainGuideActive ? 'Dừng hướng dẫn viên' : 'Bật hướng dẫn viên';
+  }
+
+  function stopTerrainGuide(options) {
+    const settings = options || {};
+    terrainGuideSessionToken += 1;
+    terrainGuideActive = false;
+    terrainGuideStepIndex = -1;
+    terrainGuideFallbackDelay = 0;
+    clearTerrainGuideTimer();
+    stopTerrainGuideAudio();
+    updateTerrainGuideButton();
+    if (!settings.keepStatus) {
+      setTerrainGuideStatus('Marker đỏ là cứ điểm đang chọn. Bật hướng dẫn viên để đi lần lượt qua từng địa điểm.');
+    }
+  }
+
+  function scheduleTerrainGuideAdvance(sessionToken) {
+    clearTerrainGuideTimer();
+    if (!terrainGuideActive || sessionToken !== terrainGuideSessionToken) return;
+    terrainGuideTimer = window.setTimeout(() => {
+      if (!terrainGuideActive || sessionToken !== terrainGuideSessionToken) return;
+      runTerrainGuideStep(terrainGuideStepIndex + 1);
+    }, terrainGuideFallbackDelay || 1600);
+  }
+
+  function playTerrainGuideAudio(mission, sessionToken) {
+    stopTerrainGuideAudio();
+    const audioPath = mission && mission.guideAudio;
+    if (!audioPath) {
+      terrainGuideFallbackDelay = 5000;
+      setTerrainGuideStatus(`Chưa có audio thu sẵn cho ${mission.name}. Tour sẽ tự chuyển sang điểm tiếp theo.`);
+      scheduleTerrainGuideAdvance(sessionToken);
+      return;
+    }
+
+    const audio = new Audio(audioPath);
+    terrainGuideAudio = audio;
+    audio.preload = 'auto';
+    audio.volume = game.audio && game.audio.sfxEnabled ? game.audio.sfxVolume : 1;
+    audio.onended = () => {
+      if (!terrainGuideActive || sessionToken !== terrainGuideSessionToken) return;
+      terrainGuideFallbackDelay = 1600;
+      scheduleTerrainGuideAdvance(sessionToken);
+    };
+    audio.onerror = () => {
+      if (!terrainGuideActive || sessionToken !== terrainGuideSessionToken) return;
+      terrainGuideFallbackDelay = 5000;
+      setTerrainGuideStatus(`Không phát được audio của ${mission.name}. Kiểm tra file ${audioPath}.`);
+      scheduleTerrainGuideAdvance(sessionToken);
+    };
+    const promise = audio.play();
+    if (promise && typeof promise.catch === 'function') {
+      promise.catch(() => {
+        if (!terrainGuideActive || sessionToken !== terrainGuideSessionToken) return;
+        terrainGuideFallbackDelay = 5000;
+        setTerrainGuideStatus(`Audio của ${mission.name} chưa sẵn sàng phát. Kiểm tra file ${audioPath}.`);
+        scheduleTerrainGuideAdvance(sessionToken);
+      });
+    }
+  }
+
+  function runTerrainGuideStep(index) {
+    const missions = NS.CampaignMissions || [];
+    if (!terrainGuideActive || !missions.length) return;
+    if (index >= missions.length) {
+      stopTerrainGuide({ keepStatus: true });
+      setTerrainGuideStatus('Hướng dẫn viên đã đi hết các địa điểm trên bản đồ.');
+      return;
+    }
+
+    const mission = missions[index];
+    terrainGuideStepIndex = index;
+    renderTerrain3DView(mission.id);
+    setTerrainGuideStatus(`Hướng dẫn viên đang giới thiệu ${mission.name}.`);
+    playTerrainGuideAudio(mission, terrainGuideSessionToken);
+  }
+
+  function startTerrainGuide() {
+    stopTerrainGuide({ keepStatus: true });
+    terrainGuideSessionToken += 1;
+    terrainGuideActive = true;
+    updateTerrainGuideButton();
+    setTerrainGuideStatus('Hướng dẫn viên đang chuẩn bị lộ trình qua các cứ điểm.');
+    const startIndex = Math.max(0, NS.CampaignMissions.findIndex((mission) => mission.id === terrain3DMissionId));
+    runTerrainGuideStep(startIndex >= 0 ? startIndex : 0);
+  }
 
   function formatCoins(value) {
     return Math.max(0, Math.round(Number(value) || 0)).toLocaleString('vi-VN');
   }
 
   function setBaseScreen(name) {
+    if (name !== 'terrain3d') stopTerrainGuide();
     baseNames.forEach((key) => screens[key].classList.toggle('screen--active', key === name));
     ['help', 'authors', 'quiz', 'pause', 'result'].forEach((key) => screens[key].classList.remove('screen--active'));
     if (name !== 'game') {
@@ -173,6 +359,121 @@
     ctx.strokeStyle = '#2d2d28'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(flagX, flagY); ctx.lineTo(flagX, flagY - 48); ctx.stroke();
     ctx.fillStyle = '#c8102e'; ctx.fillRect(flagX + 2, flagY - 47, 32, 20);
     ctx.fillStyle = '#ffdf3d'; ctx.font = '16px serif'; ctx.fillText('★', flagX + 18, flagY - 31);
+  }
+
+  function populateTerrain3DSelect() {
+    const select = document.getElementById('terrain-3d-mission-select');
+    if (!select) return;
+    select.innerHTML = NS.CampaignMissions.map((mission) => `<option value="${mission.id}">${mission.order}. ${mission.name}</option>`).join('');
+    select.value = terrain3DMissionId;
+  }
+
+  function openTerrain3DScreen(missionId) {
+    terrain3DMissionId = missionId || selectedMissionId || 'him-lam';
+    populateTerrain3DSelect();
+    updateTerrainGuideButton();
+    setTerrainGuideStatus('Marker đỏ là cứ điểm đang chọn. Bật hướng dẫn viên để đi lần lượt qua từng địa điểm.');
+    setBaseScreen('terrain3d');
+    requestAnimationFrame(() => renderTerrain3DView(terrain3DMissionId));
+  }
+
+  function createTerrainMarkerIcon(className, label) {
+    return L.divIcon({
+      className: '',
+      html: `<div class="${className}">${label || ''}</div>`,
+      iconSize: null,
+      popupAnchor: [0, -14]
+    });
+  }
+
+  function buildMissionPopup(mission, map) {
+    return `<strong>${mission.name}</strong><br>${mission.period}`;
+  }
+
+  function initTerrainMap() {
+    if (terrainMapInstance || typeof L === 'undefined') return terrainMapInstance;
+    const container = document.getElementById('terrain-3d-canvas');
+    if (!container) return null;
+    terrainMapInstance = L.map(container, {
+      zoomControl: true,
+      scrollWheelZoom: true,
+      attributionControl: true,
+      minZoom: terrainMapGeo.minZoom,
+      maxZoom: terrainMapGeo.maxZoom,
+      maxBounds: terrainMapGeo.provinceBounds,
+      maxBoundsViscosity: 1
+    }).setView(terrainMapGeo.center, terrainMapGeo.defaultZoom);
+    terrainMapInstance.attributionControl.setPrefix(false);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      minZoom: terrainMapGeo.minZoom,
+      maxZoom: 19,
+      bounds: terrainMapGeo.provinceBounds,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(terrainMapInstance);
+    terrainMapInstance.fitBounds(terrainMapGeo.provinceBounds, { animate: false });
+    terrainObjectiveLayer = L.layerGroup().addTo(terrainMapInstance);
+
+    NS.CampaignMissions.forEach((mission) => {
+      const geo = terrainMapGeo.missions[mission.id];
+      if (!geo) return;
+      const marker = L.marker([geo.lat, geo.lng], {
+        icon: createTerrainMarkerIcon('terrain-map-marker', String(mission.order))
+      }).addTo(terrainMapInstance);
+      marker.bindPopup(buildMissionPopup(mission, NS.getMapConfig(mission.id)));
+      marker.on('click', () => {
+        if (terrainGuideActive) stopTerrainGuide({ keepStatus: true });
+        terrain3DMissionId = mission.id;
+        const select = document.getElementById('terrain-3d-mission-select');
+        if (select) select.value = mission.id;
+        renderTerrain3DView(mission.id);
+        setTerrainGuideStatus(`Đang xem ${mission.name}. Bật hướng dẫn viên để tự động thuyết minh toàn tuyến.`);
+      });
+      terrainMissionMarkers.set(mission.id, marker);
+    });
+    return terrainMapInstance;
+  }
+
+  function renderTerrain3DView(missionId) {
+    terrain3DMissionId = missionId || terrain3DMissionId || 'him-lam';
+    const mission = NS.Campaign.getMission(terrain3DMissionId);
+    const map = NS.getMapConfig(terrain3DMissionId);
+    const geo = terrainMapGeo.missions[terrain3DMissionId];
+    const terrainMap = initTerrainMap();
+    if (!terrainMap || !mission || !map || !geo) return;
+
+    document.getElementById('terrain-3d-title').textContent = mission.name;
+    document.getElementById('terrain-3d-period').textContent = mission.period;
+    document.getElementById('terrain-3d-history').textContent = mission.historicalSummary;
+    const select = document.getElementById('terrain-3d-mission-select');
+    if (select && select.value !== terrain3DMissionId) select.value = terrain3DMissionId;
+
+    terrainMissionMarkers.forEach((marker, id) => {
+      const missionOrder = NS.Campaign.getMission(id).order;
+      const className = id === terrain3DMissionId ? 'terrain-map-marker terrain-map-marker--active' : 'terrain-map-marker';
+      marker.setIcon(createTerrainMarkerIcon(className, String(missionOrder)));
+    });
+
+    terrainObjectiveLayer.clearLayers();
+    geo.objectiveOffsets.forEach((offset) => {
+      const lat = geo.lat + offset.lat;
+      const lng = geo.lng + offset.lng;
+      const marker = L.marker([lat, lng], {
+        icon: createTerrainMarkerIcon('terrain-map-marker terrain-map-marker--objective', '')
+      });
+      marker.bindPopup(`<strong>${offset.label}</strong><br>${mission.name}`);
+      marker.addTo(terrainObjectiveLayer);
+    });
+
+    const focusBounds = L.latLngBounds([[geo.lat, geo.lng]]);
+    geo.objectiveOffsets.forEach((offset) => {
+      focusBounds.extend([geo.lat + offset.lat, geo.lng + offset.lng]);
+    });
+    requestAnimationFrame(() => {
+      terrainMap.invalidateSize(false);
+      terrainMap.fitBounds(focusBounds.pad(0.5), { animate: false });
+      const missionMarker = terrainMissionMarkers.get(terrain3DMissionId);
+      if (missionMarker) missionMarker.openPopup();
+    });
   }
 
   function renderShopIcon(item) {
@@ -427,6 +728,7 @@
 
   // Điều hướng chính
   document.getElementById('play-menu-button').addEventListener('click', () => { game.audio.resume(); setBaseScreen('missions'); });
+  document.getElementById('terrain-3d-button').addEventListener('click', () => { game.audio.resume(); openTerrain3DScreen(selectedMissionId); });
   document.getElementById('shop-menu-button').addEventListener('click', () => { game.audio.resume(); setBaseScreen('shop'); });
   document.getElementById('equipment-menu-button').addEventListener('click', () => { game.audio.resume(); setBaseScreen('equipment'); });
   document.getElementById('history-menu-button').addEventListener('click', () => setBaseScreen('history'));
@@ -442,6 +744,16 @@
   document.querySelectorAll('.back-home-button').forEach((button) => button.addEventListener('click', () => { refreshProfile(); setBaseScreen('menu'); }));
   document.getElementById('back-missions-button').addEventListener('click', () => setBaseScreen('missions'));
   document.getElementById('start-mission-button').addEventListener('click', startMission);
+  document.getElementById('terrain-guide-button').addEventListener('click', () => {
+    if (terrainGuideActive) stopTerrainGuide();
+    else startTerrainGuide();
+  });
+  document.getElementById('terrain-3d-mission-select').addEventListener('change', (event) => {
+    if (terrainGuideActive) stopTerrainGuide({ keepStatus: true });
+    renderTerrain3DView(event.target.value);
+    const mission = NS.Campaign.getMission(event.target.value);
+    setTerrainGuideStatus(`Đang xem ${mission.name}. Bật hướng dẫn viên để tự động thuyết minh toàn tuyến.`);
+  });
   document.querySelectorAll('.level-option').forEach((button) => button.addEventListener('click', () => {
     selectedLevel = button.dataset.level;
     document.querySelectorAll('.level-option').forEach((node) => node.classList.toggle('is-selected', node === button));
@@ -490,6 +802,7 @@
 
   window.addEventListener('beforeunload', () => { if (game.running && !game.result) game.saveGame(false); });
   document.addEventListener('visibilitychange', () => { if (document.hidden && game.running && !game.result) game.saveGame(false); });
+  window.addEventListener('resize', () => { if (screens.terrain3d.classList.contains('screen--active')) renderTerrain3DView(terrain3DMissionId); });
 
   let lastTime = 0;
   let lastRenderedAt = 0;
