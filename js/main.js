@@ -267,15 +267,12 @@
     container.innerHTML = NS.CampaignMissions.map((mission) => {
       const completed = profile.completedMissions.includes(mission.id);
       const unlocked = NS.Campaign.isMissionUnlocked(profile, mission.id);
-      const map = NS.getMapConfig(mission.id);
       const status = completed ? '★ Đã chiến thắng' : (unlocked ? 'Sẵn sàng tác chiến' : '🔒 Chưa mở khóa');
       return `<article class="mission-card ${completed ? 'is-completed' : ''} ${unlocked ? '' : 'is-locked'}">
         <div class="mission-card__number">${mission.order}</div>
         <div class="mission-card__body">
           <div class="mission-card__status">${status}</div>
           <h3>${mission.name}</h3><p class="mission-card__subtitle">${mission.subtitle} · ${mission.period}</p>
-          <p>${mission.description}</p>
-          <div class="mission-route-mini">${map.route.map((item) => `<span>${item}</span>`).join('<b>→</b>')}</div>
           <div class="mission-card__reward"><span class="vnd-coin vnd-coin--small">★</span> Thưởng cơ bản ${formatCoins(mission.reward)} xu</div>
         </div>
         <button class="button button--primary mission-detail-button" data-mission-id="${mission.id}" ${unlocked ? '' : 'disabled'}>${unlocked ? 'Xem bản đồ' : 'Hoàn thành màn trước'}</button>
