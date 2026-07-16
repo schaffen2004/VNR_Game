@@ -291,8 +291,8 @@
     const mission = NS.Campaign.getMission(missionId);
     document.getElementById('detail-mission-name').textContent = mission.name;
     document.getElementById('detail-period').textContent = `${mission.subtitle} · ${mission.period}`;
-    document.getElementById('detail-description').textContent = mission.description;
-    document.getElementById('detail-history').textContent = mission.historicalSummary;
+    document.getElementById('detail-description').textContent = mission.historicalSummary;
+    document.getElementById('detail-history').textContent = '';
     document.getElementById('detail-map-caption').textContent = mission.mapCaption;
     document.querySelectorAll('.level-option').forEach((button) => button.classList.toggle('is-selected', button.dataset.level === selectedLevel));
     drawMissionPreview(missionId);
