@@ -453,21 +453,8 @@
       marker.setIcon(createTerrainMarkerIcon(className, String(missionOrder)));
     });
 
-    terrainObjectiveLayer.clearLayers();
-    geo.objectiveOffsets.forEach((offset) => {
-      const lat = geo.lat + offset.lat;
-      const lng = geo.lng + offset.lng;
-      const marker = L.marker([lat, lng], {
-        icon: createTerrainMarkerIcon('terrain-map-marker terrain-map-marker--objective', '')
-      });
-      marker.bindPopup(`<strong>${offset.label}</strong><br>${mission.name}`);
-      marker.addTo(terrainObjectiveLayer);
-    });
-
     const focusBounds = L.latLngBounds([[geo.lat, geo.lng]]);
-    geo.objectiveOffsets.forEach((offset) => {
-      focusBounds.extend([geo.lat + offset.lat, geo.lng + offset.lng]);
-    });
+    if (terrainObjectiveLayer) terrainObjectiveLayer.clearLayers();
     requestAnimationFrame(() => {
       terrainMap.invalidateSize(false);
       terrainMap.fitBounds(focusBounds.pad(0.5), { animate: false });
@@ -598,7 +585,10 @@
   }
 
   function renderMissionRules() {
-    document.getElementById('mission-rules-list').innerHTML = NS.CampaignMissions.map((mission) => `<article><h3>${mission.order}. ${mission.name}</h3><p>${mission.mapCaption}</p><p>${mission.historicalSummary}</p></article>`).join('');
+    const container = document.getElementById('mission-rules-list');
+    if (!container) return;
+    container.innerHTML = '';
+    container.hidden = true;
   }
 
   function requestTurnQuiz() {
