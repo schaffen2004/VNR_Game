@@ -113,6 +113,15 @@
           <article class="settings-card"><h3>Nhạc nền</h3><label class="toggle-row"><input id="music-enabled-input" type="checkbox" checked><span>Bật nhạc nền chiến trường</span></label><label>Âm lượng <input id="music-volume-input" type="range" min="0" max="1" step="0.05" value="0.22"><output id="music-volume-value">22%</output></label></article>
           <article class="settings-card"><h3>Hiệu ứng game</h3><label class="toggle-row"><input id="sfx-enabled-input" type="checkbox" checked><span>Bật tiếng pháo, súng, nổ và đào hầm</span></label><label>Âm lượng <input id="sfx-volume-input" type="range" min="0" max="1" step="0.05" value="0.55"><output id="sfx-volume-value">55%</output></label><button id="test-sound-button" class="button">Nghe thử tiếng pháo</button></article>
           <article class="settings-card"><h3>Dữ liệu người chơi</h3><p>Đặt lại xu, cửa hàng và lịch sử nếu bạn muốn bắt đầu lại chiến dịch từ đầu.</p><button id="reset-progress-button" class="button button--danger">Đặt lại xu, cửa hàng và lịch sử</button></article>
+          <article class="settings-card settings-card--qr">
+            <h3>QR game</h3>
+            <p>Quét mã để mở nhanh game trên thiết bị khác hoặc chia sẻ cho người chơi khác.</p>
+            <button id="open-qr-modal-button" class="qr-card-button" type="button" aria-label="Mở QR game toàn màn hình">
+              <img data-qr-image alt="QR game Đường tới chiến thắng" class="settings-qr-image">
+            </button>
+            <a class="settings-link" href="https://vnr-game-mu.vercel.app/" target="_blank" rel="noopener noreferrer">https://vnr-game-mu.vercel.app/</a>
+            <button id="show-qr-fullscreen-button" class="button button--primary" type="button">Xem QR toàn màn hình</button>
+          </article>
         </div>
       </div>
     </section>
@@ -230,6 +239,18 @@
 
     <section id="pause-screen" class="screen overlay-screen"><div class="modal-card"><h2>Tạm dừng</h2><button id="resume-button" class="button button--primary">Tiếp tục</button><button id="restart-button" class="button">Chơi lại</button><button id="back-menu-button" class="button">Về trang chính</button></div></section>
     <section id="result-screen" class="screen overlay-screen"><div class="modal-card modal-card--result"><h2 id="result-title">Chiến thắng</h2><p id="result-reason"></p><div id="result-stats"></div><button id="result-restart-button" class="button button--primary">Đánh lại cứ điểm</button><button id="result-menu-button" class="button">Về trang chính</button></div></section>
+    <section id="qr-screen" class="screen overlay-screen qr-screen">
+      <div id="qr-modal-card" class="modal-card qr-modal-card">
+        <p class="eyebrow">CHIA SẺ GAME</p>
+        <h2>QR game</h2>
+        <img data-qr-image alt="QR game Đường tới chiến thắng" class="qr-modal-image">
+        <a class="settings-link settings-link--center" href="https://vnr-game-mu.vercel.app/" target="_blank" rel="noopener noreferrer">https://vnr-game-mu.vercel.app/</a>
+        <div class="modal-actions qr-modal-actions">
+          <button id="enter-browser-fullscreen-button" class="button" type="button">Phóng hết màn hình</button>
+          <button id="close-qr-button" class="button button--primary" type="button">Đóng</button>
+        </div>
+      </div>
+    </section>
     <div id="tutorial-popover" class="tutorial-popover" hidden><strong id="tutorial-title"></strong><p id="tutorial-text"></p><div><button id="tutorial-next-button" class="button button--primary">Tiếp</button><button id="tutorial-skip-button" class="button">Bỏ qua</button></div></div>
   </div>
 

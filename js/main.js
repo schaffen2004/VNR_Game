@@ -1,6 +1,14 @@
 (function (NS) {
   'use strict';
 
+  const QR_IMAGE_PATH = 'assets/images/QR.png';
+
+  function injectQrImages() {
+    document.querySelectorAll('[data-qr-image]').forEach((image) => {
+      image.src = QR_IMAGE_PATH;
+    });
+  }
+
   const screens = {
     menu: document.getElementById('main-menu'),
     missions: document.getElementById('mission-screen'),
@@ -15,7 +23,8 @@
     authors: document.getElementById('authors-screen'),
     quiz: document.getElementById('quiz-screen'),
     pause: document.getElementById('pause-screen'),
-    result: document.getElementById('result-screen')
+    result: document.getElementById('result-screen'),
+    qr: document.getElementById('qr-screen')
   };
 
   const baseNames = ['menu', 'missions', 'detail', 'shop', 'equipment', 'history', 'settings', 'terrain3d', 'game'];
@@ -23,6 +32,7 @@
   const minimapCanvas = document.getElementById('minimap-canvas');
   const game = new NS.Game(canvas, minimapCanvas);
   window.DuongToiChienThangGame = game;
+  injectQrImages();
   game.loadSettings();
   game.setPerformanceMode('low', false);
 
@@ -668,6 +678,17 @@
     screens.authors.classList.toggle('screen--active', Boolean(show));
   }
 
+  function showQrScreen(show) {
+    screens.qr.classList.toggle('screen--active', Boolean(show));
+  }
+
+  function requestQrFullscreen() {
+    const qrCard = document.getElementById('qr-modal-card');
+    if (!qrCard) return;
+    if (document.fullscreenElement === qrCard) return;
+    if (qrCard.requestFullscreen) qrCard.requestFullscreen().catch(() => {});
+  }
+
   function showPause(show) { screens.pause.classList.toggle('screen--active', Boolean(show)); }
 
   function showResult(victory, reason, stats) {
@@ -751,6 +772,16 @@
   document.getElementById('game-help-button').addEventListener('click', () => showHelp(true, true));
   document.getElementById('close-help-button').addEventListener('click', () => showHelp(false));
   document.getElementById('close-authors-button').addEventListener('click', () => showAuthors(false));
+  document.getElementById('open-qr-modal-button').addEventListener('click', () => showQrScreen(true));
+  document.getElementById('show-qr-fullscreen-button').addEventListener('click', () => {
+    showQrScreen(true);
+    requestQrFullscreen();
+  });
+  document.getElementById('enter-browser-fullscreen-button').addEventListener('click', requestQrFullscreen);
+  document.getElementById('close-qr-button').addEventListener('click', () => showQrScreen(false));
+  screens.qr.addEventListener('click', (event) => {
+    if (event.target === screens.qr) showQrScreen(false);
+  });
   document.getElementById('clear-history-button').addEventListener('click', () => { profile.history = []; profile = NS.Campaign.saveProfile(profile); renderHistory(); });
   document.getElementById('music-enabled-input').addEventListener('change', (event) => { game.audio.setMusicEnabled(event.target.checked); game.saveSettings(); });
   document.getElementById('sfx-enabled-input').addEventListener('change', (event) => { game.audio.setSfxEnabled(event.target.checked); game.soundEnabled = event.target.checked; updateSoundButtons(event.target.checked); game.saveSettings(); });
