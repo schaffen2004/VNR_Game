@@ -106,6 +106,77 @@
       </div>
     </section>
 
+    <section id="authors-screen" class="screen campaign-subscreen">
+      <div class="subscreen-shell authors-shell">
+        <div class="subscreen-heading">
+          <button class="back-home-button button">← Trang chính</button>
+          <div>
+            <p class="eyebrow">ĐỘI NGŨ DỰ ÁN</p>
+            <h2>Tác giả</h2>
+          </div>
+        </div>
+        <p class="screen-description">Ba thành viên cùng xây dựng game chiến thuật giáo dục về Chiến dịch Điện Biên Phủ, kết hợp nghiên cứu lịch sử, thiết kế gameplay và lập trình.</p>
+
+        <h3 class="authors-section-title">Phân chia công việc</h3>
+        <div class="authors-roles-grid">
+          <article class="authors-role-card">
+            <p class="authors-role-card__index">Thành viên 1</p>
+            <h4>Hoàng Văn Lập</h4>
+            <ul>
+              <li>Nghiên cứu tài liệu lịch sử chiến dịch Điện Biên Phủ (Perplexity)</li>
+              <li>Tổng hợp, tóm tắt nguồn để đưa vào briefing và nội dung cứ điểm (NoteLLM)</li>
+              <li>Biên soạn bộ câu hỏi trắc nghiệm theo level Dễ / Trung bình / Khó</li>
+              <li>Kiểm tra độ chính xác lịch sử của mô tả bản đồ và diễn biến trận</li>
+            </ul>
+          </article>
+          <article class="authors-role-card">
+            <p class="authors-role-card__index">Thành viên 2</p>
+            <h4>Nguyễn Đức Hiển</h4>
+            <ul>
+              <li>Đề xuất và hoàn thiện gameplay, luật chơi, cơ chế thắng/thua (ChatGPT)</li>
+              <li>Thiết kế luồng màn hình: menu, cửa hàng, khí tài, chọn cứ điểm</li>
+              <li>Cân bằng độ khó, lực tấn công, thưởng xu và hệ thống câu hỏi mỗi lượt</li>
+              <li>Soạn hướng dẫn chơi và trải nghiệm người dùng trên desktop/mobile</li>
+            </ul>
+          </article>
+          <article class="authors-role-card">
+            <p class="authors-role-card__index">Thành viên 3</p>
+            <h4>Nguyễn Quang Khải</h4>
+            <ul>
+              <li>Lập trình lõi game: pháo binh, bộ binh, xe tăng, đào hầm, công sự</li>
+              <li>Xây dựng bản đồ cứ điểm, vật lý đạn đạo, AI địch và HUD chiến đấu</li>
+              <li>Tích hợp âm thanh, lưu tiến độ, cửa hàng và lịch sử chơi</li>
+              <li>Kiểm tra lỗi code, sửa bug và tối ưu hiệu năng (Codex)</li>
+            </ul>
+          </article>
+        </div>
+
+        <h3 class="authors-section-title">Công cụ AI dùng để làm game</h3>
+        <div class="ai-tools-grid">
+          <article class="ai-tool">
+            <h4>1. Perplexity</h4>
+            <p><strong>Tác dụng:</strong> Tìm tài liệu lịch sử, nguồn tham khảo về chiến dịch Điện Biên Phủ, cứ điểm và diễn biến trận đánh.</p>
+            <p><strong>Cách prompt:</strong> Nêu rõ chủ đề cần tra cứu, yêu cầu kèm nguồn uy tín và tóm tắt ngắn. Ví dụ: <em>«Tìm tài liệu lịch sử về trận Him Lam 13/3/1954, liệt kê nguồn sách/báo và tóm tắt diễn biến chính.»</em></p>
+          </article>
+          <article class="ai-tool">
+            <h4>2. NoteLLM</h4>
+            <p><strong>Tác dụng:</strong> Tổng hợp và tóm tắt các tài liệu đã tìm được thành nội dung ngắn gọn để đưa vào game (briefing, câu hỏi, mô tả cứ điểm).</p>
+            <p><strong>Cách prompt:</strong> Dán nhiều đoạn tài liệu, yêu cầu gộp ý và rút gọn theo mục đích dùng. Ví dụ: <em>«Tóm tắt các đoạn sau thành 5 ý chính về đồi A1, dùng ngôn ngữ dễ hiểu cho học sinh.»</em></p>
+          </article>
+          <article class="ai-tool">
+            <h4>3. ChatGPT</h4>
+            <p><strong>Tác dụng:</strong> Đề xuất gameplay, cơ chế chơi, luật câu hỏi và luồng trải nghiệm chiến dịch.</p>
+            <p><strong>Cách prompt:</strong> Mô tả bối cảnh game và yêu cầu đề xuất cụ thể (luật chơi, HUD, cửa hàng…). Ví dụ: <em>«Đề xuất gameplay cho game chiến thuật 2D về Điện Biên Phủ: có pháo binh, bộ binh, câu hỏi lịch sử mỗi lượt; liệt kê cơ chế thắng/thua và cách cân bằng độ khó.»</em></p>
+          </article>
+          <article class="ai-tool">
+            <h4>4. Codex</h4>
+            <p><strong>Tác dụng:</strong> Kiểm tra lỗi code, sửa bug và hỗ trợ viết/chỉnh sửa mã nguồn game.</p>
+            <p><strong>Cách prompt:</strong> Mô tả lỗi hoặc dán đoạn code/log, yêu cầu tìm nguyên nhân và cách sửa. Ví dụ: <em>«Kiểm tra hàm xử lý sát thương trong game.js: khi trả lời sai câu hỏi, sát thương phải giảm 50% nhưng đang không áp dụng đúng.»</em></p>
+          </article>
+        </div>
+      </div>
+    </section>
+
     <section id="settings-screen" class="screen campaign-subscreen">
       <div class="subscreen-shell settings-shell">
         <div class="subscreen-heading"><button class="back-home-button button">← Trang chính</button><div><p class="eyebrow">ÂM THANH VÀ HIỆU NĂNG</p><h2>Cài đặt</h2></div></div>
@@ -212,18 +283,6 @@
         </div>
         <div id="mission-rules-list" class="mission-rules-list"></div>
         <button id="close-help-button" class="button button--primary">Đã hiểu</button>
-      </div>
-    </section>
-
-    <section id="authors-screen" class="screen overlay-screen">
-      <div class="modal-card authors-card">
-        <h2>Tác giả game</h2>
-        <div class="authors-card__content">
-          <p><strong>1.</strong> Hoàng Văn Lập</p>
-          <p><strong>2.</strong> Nguyễn Đức Hiển</p>
-          <p><strong>3.</strong> Nguyễn Quang Khải</p>
-        </div>
-        <button id="close-authors-button" class="button button--primary">Đóng</button>
       </div>
     </section>
 

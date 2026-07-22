@@ -412,10 +412,57 @@ body { background: #2b0308; }
 .modal-card { background: rgba(65,4,13,.96); border-color: rgba(255,223,56,.35); }
 .modal-card h2, .tutorial-popover strong { color: #ffe26b; }
 .tutorial-popover { background: rgba(71,4,14,.98); border-color: #ffde3d; }
-.authors-card { width: min(560px, 94vw); text-align: left; }
-.authors-card__content { display: grid; gap: 10px; color: #ead3ba; line-height: 1.55; }
-.authors-card__content p { margin: 0; }
-.authors-card__content strong { color: #ffe889; }
+.authors-shell { overflow-y: auto; }
+.authors-section-title {
+  margin: 22px 0 14px;
+  color: var(--yellow);
+  font-size: 22px;
+}
+.authors-roles-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.authors-role-card,
+.ai-tool {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 223, 61, .3);
+  background: rgba(90, 5, 19, .72);
+}
+.authors-role-card__index {
+  margin: 0;
+  color: #fff0b1;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.authors-role-card h4,
+.ai-tool h4 {
+  margin: 0;
+  color: #ffe77d;
+  font-size: 20px;
+}
+.authors-role-card ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #ead2bb;
+  line-height: 1.55;
+}
+.authors-role-card li + li { margin-top: 6px; }
+.ai-tools-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  padding-bottom: 28px;
+}
+.ai-tool p { margin: 0; color: #e1c7ae; line-height: 1.55; }
+.ai-tool strong { color: #ffe889; }
+.ai-tool em { color: #f6e4cc; font-style: italic; }
 
 @media (max-width: 900px) {
   .main-menu-grid { grid-template-columns: repeat(2, 1fr); }
@@ -638,7 +685,7 @@ body { background: #2b0308; }
 
 @media (max-width: 1050px) {
   .main-menu-grid { grid-template-columns: repeat(2, 1fr); }
-  .mission-detail-grid, .settings-grid, .terrain3d-layout { grid-template-columns: 1fr; }
+  .mission-detail-grid, .settings-grid, .terrain3d-layout, .authors-roles-grid, .ai-tools-grid { grid-template-columns: 1fr; }
   .mission-detail-shell { padding-bottom: 40px; }
 }
 

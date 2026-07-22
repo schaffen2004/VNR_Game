@@ -27,7 +27,7 @@
     qr: document.getElementById('qr-screen')
   };
 
-  const baseNames = ['menu', 'missions', 'detail', 'shop', 'equipment', 'history', 'settings', 'terrain3d', 'game'];
+  const baseNames = ['menu', 'missions', 'detail', 'shop', 'equipment', 'history', 'authors', 'settings', 'terrain3d', 'game'];
   const canvas = document.getElementById('game-canvas');
   const minimapCanvas = document.getElementById('minimap-canvas');
   const game = new NS.Game(canvas, minimapCanvas);
@@ -236,7 +236,7 @@
   function setBaseScreen(name) {
     if (name !== 'terrain3d') stopTerrainGuide();
     baseNames.forEach((key) => screens[key].classList.toggle('screen--active', key === name));
-    ['help', 'authors', 'quiz', 'pause', 'result'].forEach((key) => screens[key].classList.remove('screen--active'));
+    ['help', 'quiz', 'pause', 'result'].forEach((key) => screens[key].classList.remove('screen--active'));
     if (name !== 'game') {
       game.paused = false;
       if (game.running) game.running = false;
@@ -674,10 +674,6 @@
     else { screens.help.classList.remove('screen--active'); if (helpReturn === 'game') game.paused = false; }
   }
 
-  function showAuthors(show) {
-    screens.authors.classList.toggle('screen--active', Boolean(show));
-  }
-
   function showQrScreen(show) {
     screens.qr.classList.toggle('screen--active', Boolean(show));
   }
@@ -742,7 +738,7 @@
   document.getElementById('history-menu-button').addEventListener('click', () => setBaseScreen('history'));
   document.getElementById('settings-menu-button').addEventListener('click', () => { game.audio.resume(); refreshSettings(); setBaseScreen('settings'); });
   document.getElementById('home-continue-menu-button').addEventListener('click', () => { game.audio.resume(); continueSavedGame(); });
-  document.getElementById('authors-button').addEventListener('click', () => showAuthors(true));
+  document.getElementById('authors-button').addEventListener('click', () => setBaseScreen('authors'));
   document.querySelectorAll('[data-home-screen]').forEach((button) => button.addEventListener('click', () => {
     const target = button.dataset.homeScreen;
     if (!target || !screens[target]) return;
@@ -771,7 +767,6 @@
   document.getElementById('help-button').addEventListener('click', () => showHelp(true, false));
   document.getElementById('game-help-button').addEventListener('click', () => showHelp(true, true));
   document.getElementById('close-help-button').addEventListener('click', () => showHelp(false));
-  document.getElementById('close-authors-button').addEventListener('click', () => showAuthors(false));
   document.getElementById('open-qr-modal-button').addEventListener('click', () => showQrScreen(true));
   document.getElementById('show-qr-fullscreen-button').addEventListener('click', () => {
     showQrScreen(true);
